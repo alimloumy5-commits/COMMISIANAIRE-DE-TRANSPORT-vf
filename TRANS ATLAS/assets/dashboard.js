@@ -32,7 +32,41 @@ let opts=(id,label,items,val)=>'<label>'+label+'<select id="'+id+'"><option valu
 let cnt=s=>lfPeriod().filter(r=>lfStatus(r)===s).length;
 return '<div class="lf-quick"><button data-lf-quick="Livrée" class="'+(lfFilters.status==='Livrée'?'active':'')+'">Livrées <b>'+cnt('Livrée')+'</b></button><button data-lf-quick="En retard" class="'+(lfFilters.status==='En retard'?'active':'')+'">En retard <b>'+cnt('En retard')+'</b></button></div><div class="lf-filters"><input id="lf-search" placeholder="Rechercher une référence, un trajet…" value="'+lfEsc(lfFilters.search)+'">'+opts('lf-status','Statut',[...new Set(lfPeriod().map(lfStatus))],lfFilters.status)+opts('lf-client','Client',[...new Set(lfPeriod().map(r=>r.client))],lfFilters.client)+opts('lf-carrier','Transporteur',[...new Set(lfPeriod().map(r=>r.carrier))],lfFilters.carrier)+opts('lf-zone','Zone',[...new Set(lfPeriod().map(r=>r.zone))],lfFilters.zone)+'</div><div class="lf-table-wrap"><table class="lf-table"><thead><tr>'+head+'</tr></thead><tbody>'+(body||'<tr><td colspan="11">Aucune expédition ne correspond aux filtres choisis.</td></tr>')+'</tbody></table></div><div class="lf-pagination"><span>'+rows.length+' expéditions · page '+lfFilters.page+' / '+pages+'</span><div><button data-lf-pg="'+Math.max(1,lfFilters.page-1)+'" '+(lfFilters.page===1?'disabled':'')+'>Précédent</button><button data-lf-pg="'+Math.min(pages,lfFilters.page+1)+'" '+(lfFilters.page===pages?'disabled':'')+'>Suivant</button></div></div>'}
 function lfKpi(label,value,change,good,note){return '<article class="lf-kpi"><span>'+label+'</span><b>'+value+'</b>'+(change?'<small class="'+(good?'good':'bad')+'">'+(good?'↑':'↓')+' '+change+' <em>vs période précédente</em></small>':'')+(note?'<small class="lf-kpi-note">'+note+'</small>':'')+'</article>'}
-function lfChart(){let rows=lfPeriod(),weeks=[['01–07 nov.',1,7],['08–14 nov.',8,14],['15–21 nov.',15,21],['22–30 nov.',22,30]],max=1;let v=weeks.map(w=>{let a=rows.filter(r=>{let d=+r.dispatch.slice(-2);return d>=w[1]&&d<=w[2]}),q={label:w[0],d:a.filter(r=>lfStatus(r)==='Livrée').length,t:a.filter(r=>['En transit','Chargement','En douane'].includes(lfStatus(r))).length,l:a.filter(r=>lfStatus(r)==='En retard').length};max=Math.max(max,q.d+q.t+q.l);return q});return '<div class="lf-legend"><span class="done">Livrées</span><span class="transit">En cours</span><span class="late">En retard</span></div><div class="lf-chart">'+v.map(q=>'<div><b>'+(q.d+q.t+q.l)+'</b><div class="lf-bar" aria-label="'+q.label+' : '+q.d+' livrées, '+q.t+' en cours, '+q.l+' en retard"><i class="done" title="'+q.d+' livrées" style="height:'+(q.d/max*100)+'%"></i><i class="transit" title="'+q.t+' en cours" style="height:'+(q.t/max*100)+'%"></i><i class="late" title="'+q.l+' en retard" style="height:'+(q.l/max*100)+'%"></i></div><small>'+q.label+'</small></div>').join('')+'</div>'}
+function lfChart() {
+  const day = 86400000;
+  const start = Date.parse(dashboardStart);
+  const end = Date.parse(dashboardEnd);
+  const weeks = new Map();
+  for (const row of lfPeriod()) {
+    const week = Math.floor((Date.parse(row.dispatch) - start) / (7 * day));
+    if (!weeks.has(week)) weeks.set(week, {done: 0, transit: 0, late: 0});
+    const status = lfStatus(row);
+    const counts = weeks.get(week);
+    if (status === 'Livrée') counts.done++;
+    if (['En transit', 'Chargement', 'En douane'].includes(status)) counts.transit++;
+    if (status === 'En retard') counts.late++;
+  }
+  const weekCount = Math.floor((end - start) / (7 * day)) + 1;
+  const indexes = weekCount <= 12 ? Array.from({length: weekCount}, (_, index) => index) : [...weeks.keys()].sort((a, b) => a - b);
+  const total = counts => counts.done + counts.transit + counts.late;
+  const maximum = Math.max(1, ...Array.from(weeks.values(), total));
+  const date = new Intl.DateTimeFormat('fr-FR', {day: '2-digit', month: '2-digit', timeZone: 'UTC'});
+  const categories = [['done', 'Livrées'], ['transit', 'En cours'], ['late', 'En retard']];
+  const bars = indexes.map(index => {
+    const from = start + index * 7 * day;
+    const label = date.format(from) + '–' + date.format(Math.min(end, from + 6 * day));
+    const counts = weeks.get(index) ?? {done: 0, transit: 0, late: 0};
+    const description = label + ' : ' + categories.map(([key, name]) => counts[key] + ' ' + name.toLowerCase()).join(', ');
+    const segments = categories.map(([key, name]) => '<i class="' + key + '" title="' + name + ' : ' +
+      counts[key] + '" style="height:' + (counts[key] / maximum * 100) + '%"></i>').join('');
+    return '<div><b>' + total(counts) + '</b><div class="lf-bar" role="img" aria-label="' +
+      description + '">' + segments + '</div><small>' + label + '</small></div>';
+  }).join('');
+  const legend = categories.map(([key, name]) => '<span class="' + key + '">' + name + '</span>').join('');
+  return '<div class="lf-legend">' + legend + '</div><div style="overflow-x:auto">' +
+    '<div class="lf-chart" style="grid-template-columns:repeat(' + indexes.length +
+    ',minmax(76px,1fr))">' + bars + '</div></div>';
+}
 function lfTrucks(){let rows=lfPeriod();return lfFleet.map(f=>{let name=f[0],a=rows.filter(r=>name==='Semi-remorque bâchée'?r.truck==='Semi-remorque bâchée':name==='Frigorifique'?r.truck.toLowerCase().includes('frigorifique'):name==='Plateau'?r.truck.toLowerCase().includes('plateau'):name==='Porte-conteneur'?r.truck===name:name.startsWith('ADR')?r.truck.startsWith('ADR'):r.truck===name),used=new Set(a.map(r=>r.plate)).size,util=f[1]?Math.round(used/f[1]*100):0;return '<div class="lf-truck"><div><b>'+name+'</b><strong>'+used+' / '+f[1]+' camions · '+util+' %</strong></div><i><span style="width:'+util+'%"></span></i><small>'+a.length+' expédition(s) · '+a.reduce((n,r)=>n+r.weight,0).toLocaleString('fr-FR')+' t · flotte '+f[1]+' véhicules</small></div>'}).join('')+'<p class="lf-note">Les types sans mission restent à 0 %. Capacités indicatives à vérifier selon la carte grise, le PTAC et la configuration réelle.</p>'}
 function lfAlertHtml(){return lfAlerts.map(a=>'<article class="lf-alert '+a.severity+'"><div><b>'+a.kind+'</b><span>depuis '+a.days+' j · '+(a.severity==='critique'?'Critique':'Moyenne')+'</span></div><a href="#" data-lf-row="'+a.ref+'">'+a.ref+' · '+a.route+'</a><p>'+a.impact+'</p><footer><button data-lf-act="Relancer le transporteur" data-ref="'+a.ref+'">Relancer le transporteur</button><button data-lf-act="Téléverser le document" data-ref="'+a.ref+'">Téléverser le document</button><button data-lf-act="Prévenir le client" data-ref="'+a.ref+'">Prévenir le client</button></footer></article>').join('')}
 function lfFunnelHtml(){return '<div class="lf-funnel">'+lfFunnel.map((x,i)=>'<div><span>'+x[0]+'</span><b>'+x[1]+'</b><i><em style="width:'+(x[1]/lfFunnel[0][1]*100)+'%"></em></i><small>'+(i?Math.round(x[1]/lfFunnel[i-1][1]*100)+' % depuis '+lfFunnel[i-1][0].toLowerCase():'Entrée du pipeline')+'</small></div>').join('')+'</div>'}
