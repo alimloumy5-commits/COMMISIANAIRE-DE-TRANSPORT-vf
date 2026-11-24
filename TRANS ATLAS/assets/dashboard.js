@@ -173,10 +173,13 @@ function lfAlertHtml() {
     '</span></div><a href="#" data-lf-row="' + lfEsc(alert.ref) + '">' +
     lfEsc(alert.ref + ' · ' + alert.route) + '</a><p>' + lfEsc(alert.impact) +
     '</p>' + lfAlertWorkflow(alert) + '</article>').join('');
-  return '<p>' + active.length + ' ' + (active.length === 1 ? 'alerte active' : 'alertes actives') +
-    ' · Actions simulées en mode démo</p><div class="lf-alerts">' +
-    (renderCards(active) || '<p>Aucune alerte active.</p>') + '</div>' +
-    (resolved.length ? '<h3>Alertes résolues</h3><div class="lf-alerts">' + renderCards(resolved) + '</div>' : '');
+  return '<p>Actions simulées en mode démo</p>' +
+    '<details id="lf-alert-active" open><summary style="cursor:pointer">Alertes actives (' +
+    active.length + ')</summary><div class="lf-alerts">' +
+    (renderCards(active) || '<p>Aucune alerte active.</p>') + '</div></details>' +
+    '<details id="lf-alert-resolved" open><summary style="cursor:pointer">Alertes résolues (' +
+    resolved.length + ')</summary><div class="lf-alerts">' +
+    (renderCards(resolved) || '<p>Aucune alerte résolue.</p>') + '</div></details>';
 }
 function lfTitle(){return '<div class="lf-title"><div><div class="lf-breadcrumb">Accueil <span>›</span> Tableau de bord <span class="lf-mode">Mode démo · 24 nov. 2026</span></div><h1>Tableau de bord</h1></div><div class="lf-actions"><button data-lf-create="Nouvelle expédition">＋ Nouvelle expédition</button></div></div>'}
 function lfPayload(row) {
@@ -259,7 +262,11 @@ function lfAct(action, ref) {
   };
   try { localStorage.setItem(lfAlertStorageKey, JSON.stringify(lfAlertProgress)); } catch {}
   const list = document.querySelector('#lf-alert-content');
-  if (list) list.innerHTML = lfAlertHtml();
+  if (list) {
+    const closed = [...list.querySelectorAll('details:not([open])')].map(details => details.id);
+    list.innerHTML = lfAlertHtml();
+    for (const id of closed) document.getElementById(id).open = false;
+  }
   if (document.querySelector('.lf-drawer-panel h2')?.textContent === ref) lfDrawer(ref);
   toast(lfAlertProgress[ref].status + ' · Action simulée');
 }
