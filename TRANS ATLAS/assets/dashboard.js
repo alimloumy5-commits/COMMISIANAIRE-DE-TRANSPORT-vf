@@ -121,7 +121,29 @@ function lfChart() {
     grid + lines + labels + dots + '</svg></div>' +
     '<div id="lf-chart-selection" aria-live="polite"><p>Sélectionnez un point pour voir les expéditions.</p></div>';
 }
-function lfTrucks(){let rows=lfPeriod();return lfFleet.map(f=>{let name=f[0],a=rows.filter(r=>name==='Semi-remorque bâchée'?r.truck==='Semi-remorque bâchée':name==='Frigorifique'?r.truck.toLowerCase().includes('frigorifique'):name==='Plateau'?r.truck.toLowerCase().includes('plateau'):name==='Porte-conteneur'?r.truck===name:name.startsWith('ADR')?r.truck.startsWith('ADR'):r.truck===name),used=new Set(a.map(r=>r.plate)).size,util=f[1]?Math.round(used/f[1]*100):0;return '<div class="lf-truck"><div><b>'+name+'</b><strong>'+used+' / '+f[1]+' camions · '+util+' %</strong></div><i><span style="width:'+util+'%"></span></i><small>'+a.length+' expédition(s) · '+a.reduce((n,r)=>n+r.weight,0).toLocaleString('fr-FR')+' t · flotte '+f[1]+' véhicules</small></div>'}).join('')+'<p class="lf-note">Les types sans mission restent à 0 %. Capacités indicatives à vérifier selon la carte grise, le PTAC et la configuration réelle.</p>'}
+function lfTrucks() {
+  const rows = lfPeriod();
+  return lfFleet.map(([name, fleetSize]) => {
+    const shipments = rows.filter(row => {
+      if (name === 'Frigorifique') return row.truck.toLowerCase().includes('frigorifique');
+      if (name === 'Plateau') return row.truck.toLowerCase().includes('plateau');
+      if (name.startsWith('ADR')) return row.truck.startsWith('ADR');
+      return row.truck === name;
+    });
+    const used = new Set(shipments.map(row => row.plate)).size;
+    const utilization = fleetSize ? Math.round(used / fleetSize * 100) : 0;
+    const weight = shipments.reduce((sum, row) => sum + row.weight, 0).toLocaleString('fr-FR');
+    const list = shipments.length ? '<ul>' + shipments.map(row =>
+      '<li><button type="button" class="text-button" data-lf-row="' + lfEsc(row.ref) + '">' +
+      lfEsc(row.ref + ' · ' + row.route) + '</button> · ' + lfEsc(lfStatus(row)) + '</li>'
+    ).join('') + '</ul>' : '<p>Aucune expédition de ce type sur la période.</p>';
+    return '<div class="lf-truck"><div><b>' + lfEsc(name) + '</b><strong>' + used + ' / ' +
+      fleetSize + ' camions · ' + utilization + ' %</strong></div><i><span style="width:' +
+      utilization + '%"></span></i><small>' + shipments.length + ' expédition(s) · ' + weight +
+      ' t · flotte ' + fleetSize + ' véhicules</small><details><summary style="cursor:pointer">' +
+      'Voir les expéditions <span aria-hidden="true">· ' + shipments.length + '</span></summary>' + list + '</details></div>';
+  }).join('') + '<p class="lf-note">Les types sans mission restent à 0 %. Capacités indicatives à vérifier selon la carte grise, le PTAC et la configuration réelle.</p>';
+}
 function lfAlertHtml(){return lfAlerts.map(a=>'<article class="lf-alert '+a.severity+'"><div><b>'+a.kind+'</b><span>depuis '+a.days+' j · '+(a.severity==='critique'?'Critique':'Moyenne')+'</span></div><a href="#" data-lf-row="'+a.ref+'">'+a.ref+' · '+a.route+'</a><p>'+a.impact+'</p><footer><button data-lf-act="Relancer le transporteur" data-ref="'+a.ref+'">Relancer le transporteur</button><button data-lf-act="Téléverser le document" data-ref="'+a.ref+'">Téléverser le document</button><button data-lf-act="Prévenir le client" data-ref="'+a.ref+'">Prévenir le client</button></footer></article>').join('')}
 function lfFunnelHtml(){return '<div class="lf-funnel">'+lfFunnel.map((x,i)=>'<div><span>'+x[0]+'</span><b>'+x[1]+'</b><i><em style="width:'+(x[1]/lfFunnel[0][1]*100)+'%"></em></i><small>'+(i?Math.round(x[1]/lfFunnel[i-1][1]*100)+' % depuis '+lfFunnel[i-1][0].toLowerCase():'Entrée du pipeline')+'</small></div>').join('')+'</div>'}
 function lfTitle(){return '<div class="lf-title"><div><div class="lf-breadcrumb">Accueil <span>›</span> Tableau de bord <span class="lf-mode">Mode démo · 24 nov. 2026</span></div><h1>Tableau de bord</h1><p>Suivez les missions, les marges et les points à traiter.</p></div><div class="lf-actions"><button data-lf-create="Nouvelle expédition">＋ Nouvelle expédition</button><button data-lf-create="Nouvel appel d’offres">Nouvel appel d’offres</button><button data-lf-create="Demander un devis">Demander un devis</button></div></div>'}
