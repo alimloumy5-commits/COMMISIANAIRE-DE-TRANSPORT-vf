@@ -28,8 +28,18 @@ function lfTable(){let rows=lfFiltered(),cols=[['ref','Référence'],['client','
 let head=cols.map(c=>'<th><button data-lf-sort="'+c[0]+'">'+c[1]+' '+(lfFilters.sort===c[0]?(lfFilters.direction===1?'↑':'↓'):'↕')+'</button></th>').join('');
 let body=rows.map(r=>'<tr tabindex="0" data-lf-row="'+r.ref+'"><td><b>'+r.ref+'</b></td><td>'+lfEsc(r.client)+'</td><td>'+lfEsc(r.route)+'</td><td>'+lfEsc(r.zone)+'</td><td>'+lfEsc(r.carrier)+'<small class="lf-plate">'+lfEsc(r.plate)+'</small></td><td>'+lfEsc(r.truck)+'</td><td>'+r.weight.toLocaleString('fr-FR')+' t / '+r.volume+' m³</td><td>'+lfEsc(r.incoterm || '—')+'</td><td>'+lfDate(r.eta)+'</td><td>'+lfMoney(r.price-r.cost)+'</td><td><span class="lf-status '+lfStatus(r).toLowerCase().replaceAll(' ','-')+'">'+lfStatus(r)+'</span></td></tr>').join('');
 let opts=(id,label,items,val)=>'<label>'+label+'<select id="'+id+'"><option value="">Tous</option>'+items.map(x=>'<option value="'+lfEsc(x)+'" '+(x===val?'selected':'')+'>'+lfEsc(x)+'</option>').join('')+'</select></label>';
-let cnt=s=>lfPeriod().filter(r=>lfStatus(r)===s).length;
-return '<div class="lf-quick"><button data-lf-quick="Livrée" class="'+(lfFilters.status==='Livrée'?'active':'')+'">Livrées <b>'+cnt('Livrée')+'</b></button><button data-lf-quick="En retard" class="'+(lfFilters.status==='En retard'?'active':'')+'">En retard <b>'+cnt('En retard')+'</b></button></div><div class="lf-filters"><input id="lf-search" placeholder="Rechercher une référence, un trajet…" value="'+lfEsc(lfFilters.search)+'">'+opts('lf-status','Statut',[...new Set(lfPeriod().map(lfStatus))],lfFilters.status)+opts('lf-client','Client',[...new Set(lfPeriod().map(r=>r.client))],lfFilters.client)+opts('lf-carrier','Transporteur',[...new Set(lfPeriod().map(r=>r.carrier))],lfFilters.carrier)+opts('lf-zone','Zone',[...new Set(lfPeriod().map(r=>r.zone))],lfFilters.zone)+'</div><div class="lf-table-wrap"><table class="lf-table"><thead><tr>'+head+'</tr></thead><tbody>'+(body||'<tr><td colspan="11">Aucune expédition ne correspond aux filtres choisis.</td></tr>')+'</tbody></table></div><div class="lf-pagination"><span>'+rows.length+' expédition'+(rows.length===1?'':'s')+'</span></div>'}
+let statuses=[...new Set(['Livrée','En retard',...lfR.map(lfStatus)])];
+let counts=new Map();
+for(let row of lfPeriod()){
+  let status=lfStatus(row);
+  counts.set(status,(counts.get(status)||0)+1);
+}
+let quick=statuses.map(status=>{
+  let active=lfFilters.status===status;
+  let label=status==='Livrée'?'Livrées':status;
+  return '<button type="button" data-lf-quick="'+lfEsc(status)+'" class="'+(active?'active':'')+'" aria-pressed="'+active+'">'+lfEsc(label)+' <b>'+(counts.get(status)||0)+'</b></button>';
+}).join('');
+return '<div class="lf-quick">'+quick+'</div><div class="lf-filters"><input id="lf-search" placeholder="Rechercher une référence, un trajet…" value="'+lfEsc(lfFilters.search)+'">'+opts('lf-status','Statut',statuses,lfFilters.status)+opts('lf-client','Client',[...new Set(lfPeriod().map(r=>r.client))],lfFilters.client)+opts('lf-carrier','Transporteur',[...new Set(lfPeriod().map(r=>r.carrier))],lfFilters.carrier)+opts('lf-zone','Zone',[...new Set(lfPeriod().map(r=>r.zone))],lfFilters.zone)+'</div><div class="lf-table-wrap"><table class="lf-table"><thead><tr>'+head+'</tr></thead><tbody>'+(body||'<tr><td colspan="11">Aucune expédition ne correspond aux filtres choisis.</td></tr>')+'</tbody></table></div><div class="lf-pagination"><span>'+rows.length+' expédition'+(rows.length===1?'':'s')+'</span></div>'}
 function lfKpi(label,value,note){return '<article class="lf-kpi"><span>'+label+'</span><b>'+value+'</b>'+(note?'<small class="lf-kpi-note">'+note+'</small>':'')+'</article>'}
 const lfChartSeries = [['done', 'Livrées', '#16845e'], ['transit', 'En cours', '#2671b5'], ['late', 'En retard', '#bf4c42']];
 
