@@ -150,16 +150,23 @@ try {
   if (stored && typeof stored === 'object' && !Array.isArray(stored)) lfAlertProgress = stored;
 } catch {}
 
+function lfCurrentAlertProgress(ref) {
+  const saved = lfAlertProgress[ref];
+  return saved?.status === 'En cours' || saved?.resolutionConfirmed === true ? saved : null;
+}
+
 function lfAlertWorkflow(alert) {
-  const saved = lfAlertProgress[alert.ref];
-  const progress = saved?.status === 'En cours' ? saved : null;
+  const progress = lfCurrentAlertProgress(alert.ref);
   const status = progress?.status || 'À traiter';
   const reported = new Date(Date.parse(lfDemoDate) - alert.days * 86400000).toISOString().slice(0, 10);
   const lastAction = progress ? lfEsc(progress.action) + ' · ' + lfEsc(progress.when) : 'Aucune action enregistrée';
   return '<p><b>Statut : ' + lfEsc(status) + '</b><br>Signalée le ' + lfDate(reported) +
     '<br>Dernière action : ' + lastAction + '</p>' +
-    (status === 'À traiter' ? '<footer><button type="button" data-lf-act="start" data-ref="' +
-      lfEsc(alert.ref) + '">' + lfEsc(alert.action) + '</button></footer>' : '');
+    (status === 'Résolue' ? '' : '<footer>' +
+      (status === 'À traiter' ? '<button type="button" data-lf-act="start" data-ref="' +
+        lfEsc(alert.ref) + '">' + lfEsc(alert.action) + '</button>' : '') +
+      (alert.ref === 'EXP-2026-0843' ? '<button type="button" data-lf-act="resolve" data-ref="' +
+        lfEsc(alert.ref) + '">Marquer comme résolue</button>' : '') + '</footer>');
 }
 
 function lfAlertHtml() {
@@ -171,7 +178,8 @@ function lfAlertHtml() {
     '</span></div><a href="#" data-lf-row="' + lfEsc(alert.ref) + '">' +
     lfEsc(alert.ref + ' · ' + alert.route) + '</a><p>' + lfEsc(alert.impact) +
     '</p>' + lfAlertWorkflow(alert) + '</article>').join('');
-  return '<p>' + active.length + ' alertes actives · Actions simulées en mode démo</p>' +
+  const activeCount = active.filter(alert => lfCurrentAlertProgress(alert.ref)?.status !== 'Résolue').length;
+  return '<p>' + activeCount + ' alertes actives · Actions simulées en mode démo</p>' +
     '<div class="lf-alerts">' + renderCards(active) + '</div>';
 }
 function lfTitle(){return '<div class="lf-title"><div><div class="lf-breadcrumb">Accueil <span>›</span> Tableau de bord <span class="lf-mode">Mode démo · 24 nov. 2026</span></div><h1>Tableau de bord</h1></div><div class="lf-actions"><button data-lf-create="Nouvelle expédition">＋ Nouvelle expédition</button></div></div>'}
@@ -241,11 +249,14 @@ function lfAct(action, ref) {
   const alert = lfAlerts.find(item => item.ref === ref);
   if (!alert) return;
 
-  if (action !== 'start' || lfAlertProgress[ref]?.status === 'En cours') return;
+  const status = lfCurrentAlertProgress(ref)?.status || 'À traiter';
+  const resolve = action === 'resolve' && ref === 'EXP-2026-0843';
+  if (status === 'Résolue' || (!resolve && (action !== 'start' || status !== 'À traiter'))) return;
 
   lfAlertProgress[ref] = {
-    status: 'En cours',
-    action: alert.action,
+    status: resolve ? 'Résolue' : 'En cours',
+    resolutionConfirmed: resolve,
+    action: resolve ? 'Alerte marquée comme résolue' : alert.action,
     when: new Intl.DateTimeFormat('fr-MA', {
       timeZone: 'Africa/Casablanca', dateStyle: 'short', timeStyle: 'short'
     }).format(new Date())
