@@ -19,9 +19,9 @@ function lfDate(s){return new Intl.DateTimeFormat('fr-FR',{day:'2-digit',month:'
 function lfPeriod(){return lfR.filter(r=>r.dispatch>=dashboardStart&&r.dispatch<=dashboardEnd)}
 const lfFleet=[['Semi-remorque bâchée',32],['Tautliner',18],['Frigorifique',20],['Citerne',8],['Plateau',12],['Porte-conteneur',14],['ADR (matières dangereuses)',6]];
 const lfAlerts=[
-{kind:'Excursion de température',severity:'critique',days:0,ref:'EXP-2026-0843',impact:'Risque qualité · Agro Maroc',route:'Agadir → Rotterdam'},
-{kind:'Preuve de livraison (POD) manquante',severity:'moyenne',days:2,ref:'EXP-2026-0845',impact:'Justificatif à récupérer · Textile du Nord',route:'Tanger → Barcelone'},
-{kind:'Document de frontière à confirmer',severity:'moyenne',days:0,ref:'EXP-2026-0844',impact:'Vérifier le dossier de passage · Maroc Distribution',route:'Casablanca → Dakar'}];
+{kind:'Excursion de température',severity:'critique',days:0,action:'Demander le relevé de température',ref:'EXP-2026-0843',impact:'Risque qualité · Agro Maroc',route:'Agadir → Rotterdam'},
+{kind:'Preuve de livraison (POD) manquante',severity:'moyenne',days:2,action:'Demander le bon de livraison signé',ref:'EXP-2026-0845',impact:'Justificatif à récupérer · Textile du Nord',route:'Tanger → Barcelone'},
+{kind:'Document de frontière à confirmer',severity:'moyenne',days:0,action:'Vérifier le document de passage',ref:'EXP-2026-0844',impact:'Vérifier le dossier de passage · Maroc Distribution',route:'Casablanca → Dakar'}];
 let lfFilters={status:'',client:'',carrier:'',zone:'',search:'',sort:'dispatch',direction:-1,page:1};
 function lfFiltered(){let a=lfPeriod().filter(r=>(!lfFilters.status||lfStatus(r)===lfFilters.status)&&(!lfFilters.client||r.client===lfFilters.client)&&(!lfFilters.carrier||r.carrier===lfFilters.carrier)&&(!lfFilters.zone||r.zone===lfFilters.zone)&&(!lfFilters.search||Object.values(r).join(' ').toLowerCase().includes(lfFilters.search)));a.sort((x,y)=>{let p=x[lfFilters.sort],q=y[lfFilters.sort];if(lfFilters.sort==='status'){p=lfStatus(x);q=lfStatus(y)}return (p<q?-1:p>q?1:0)*lfFilters.direction});return a}
 function lfTable(){let rows=lfFiltered(),pages=Math.max(1,Math.ceil(rows.length/6));lfFilters.page=Math.min(lfFilters.page,pages);let view=rows.slice((lfFilters.page-1)*6,lfFilters.page*6),cols=[['ref','Référence'],['client','Client'],['route','Trajet'],['zone','Zone'],['carrier','Transporteur'],['truck','Type de camion'],['weight','Poids / volume'],['incoterm','Incoterm'],['eta','ETA'],['margin','Marge (MAD)'],['status','Statut']];
@@ -143,7 +143,39 @@ function lfTrucks() {
       'Voir les expéditions <span aria-hidden="true">· ' + shipments.length + '</span></summary>' + list + '</details></div>';
   }).join('') + '<p class="lf-note">Les types sans mission restent à 0 %. Capacités indicatives à vérifier selon la carte grise, le PTAC et la configuration réelle.</p>';
 }
-function lfAlertHtml(){return lfAlerts.map(a=>'<article class="lf-alert '+a.severity+'"><div><b>'+a.kind+'</b><span>depuis '+a.days+' j · '+(a.severity==='critique'?'Critique':'Moyenne')+'</span></div><a href="#" data-lf-row="'+a.ref+'">'+a.ref+' · '+a.route+'</a><p>'+a.impact+'</p><footer><button data-lf-act="Relancer le transporteur" data-ref="'+a.ref+'">Relancer le transporteur</button><button data-lf-act="Téléverser le document" data-ref="'+a.ref+'">Téléverser le document</button><button data-lf-act="Prévenir le client" data-ref="'+a.ref+'">Prévenir le client</button></footer></article>').join('')}
+const lfAlertStorageKey = 'logiflow-alert-progress-v1';
+let lfAlertProgress = {};
+try {
+  const stored = JSON.parse(localStorage.getItem(lfAlertStorageKey) || '{}');
+  if (stored && typeof stored === 'object' && !Array.isArray(stored)) lfAlertProgress = stored;
+} catch {}
+
+function lfAlertWorkflow(alert) {
+  const progress = lfAlertProgress[alert.ref];
+  const status = progress?.status || 'À traiter';
+  const reported = new Date(Date.parse(lfDemoDate) - alert.days * 86400000).toISOString().slice(0, 10);
+  const lastAction = progress ? lfEsc(progress.action) + ' · ' + lfEsc(progress.when) : 'Aucune action enregistrée';
+  const next = status === 'À traiter' ? 'start' : 'resolve';
+  const label = status === 'À traiter' ? alert.action : 'Marquer comme résolue';
+  return '<p><b>Statut : ' + lfEsc(status) + '</b><br>Signalée le ' + lfDate(reported) +
+    '<br>Dernière action : ' + lastAction + '</p>' +
+    (status === 'Résolue' ? '' : '<footer><button type="button" data-lf-act="' + next +
+      '" data-ref="' + lfEsc(alert.ref) + '">' + lfEsc(label) + '</button></footer>');
+}
+
+function lfAlertHtml() {
+  const active = lfAlerts.filter(alert => lfAlertProgress[alert.ref]?.status !== 'Résolue');
+  active.sort((a, b) => Number(b.severity === 'critique') - Number(a.severity === 'critique'));
+  const cards = active.map(alert =>
+    '<article class="lf-alert ' + alert.severity + '"><div><b>' + lfEsc(alert.kind) +
+    '</b><span>' + (alert.severity === 'critique' ? 'Critique' : 'Moyenne') +
+    '</span></div><a href="#" data-lf-row="' + lfEsc(alert.ref) + '">' +
+    lfEsc(alert.ref + ' · ' + alert.route) + '</a><p>' + lfEsc(alert.impact) +
+    '</p>' + lfAlertWorkflow(alert) + '</article>').join('');
+  return '<p>' + active.length + ' ' + (active.length === 1 ? 'alerte active' : 'alertes actives') +
+    ' · Actions simulées en mode démo</p><div class="lf-alerts">' +
+    (cards || '<p>Aucune alerte active.</p>') + '</div>';
+}
 function lfTitle(){return '<div class="lf-title"><div><div class="lf-breadcrumb">Accueil <span>›</span> Tableau de bord <span class="lf-mode">Mode démo · 24 nov. 2026</span></div><h1>Tableau de bord</h1></div><div class="lf-actions"><button data-lf-create="Nouvelle expédition">＋ Nouvelle expédition</button></div></div>'}
 function lfPayload(row) {
   const type = row.truck === 'Tautliner' ? 'Semi-remorque tautliner' : row.truck;
@@ -182,7 +214,7 @@ function lfOtif() {
 }
 
 function dashboard(){let rows=lfPeriod(),done=rows.filter(r=>lfStatus(r)==='Livrée'),otif=lfOtif(),margin=rows.reduce((n,r)=>n+r.price-r.cost,0),unpaid=invoices.filter(i=>['À payer','En retard','Partielle'].includes(i[4])).reduce((n,i)=>n+({'FAC-2026-098':12000,'FAC-2026-097':18200,'FAC-2026-096':12800,'FAC-2026-095':9400,'FAC-2026-094':20400}[i[0]]||0),0),active=rows.map(lfStatus).filter(s=>['En transit','Chargement','En douane'].includes(s)).length,open=offers.filter(o=>o[6]==='Ouvert'||o[6]==='Côture proche').length;
-return lfTitle()+'<div class="lf-period"><label>Du <input id="dashboardStart" type="date" value="'+dashboardStart+'"></label><label>Au <input id="dashboardEnd" type="date" value="'+dashboardEnd+'"></label><span>'+rows.length+' expéditions · '+lfDate(dashboardStart)+' — '+lfDate(dashboardEnd)+'</span></div><div class="lf-kpis">'+lfKpi('Nombre d’expéditions',rows.length,'')+lfKpi('En cours',active,'')+lfKpi('En retard',rows.filter(row=>lfStatus(row)==='En retard').length,'Missions ouvertes dont la date promise est dépassée')+lfKpi('OTIF',otif.label,otif.met+'/'+otif.due+' livraisons dues, à l’heure et complètes')+lfKpi('Marge brute',lfMoney(margin),'Prix client − coût transporteur')+lfKpi('Appels d’offres sans réponse',open,'Dossiers ouverts')+lfKpi('Factures impayées',lfMoney(unpaid),'DSO : 32 jours')+lfOperationalKpis(rows,done)+'</div><div class="lf-grid"><section class="lf-card"><h2>Activité des expéditions</h2><p>Volumes hebdomadaires selon le statut · période sélectionnée</p>'+(rows.length?lfChart():'Aucune expédition pour cette période.')+'</section><section class="lf-card"><h2>Types de camions utilisés</h2><p>Taux d’utilisation, nombre de missions et tonnage</p>'+lfTrucks()+'</section></div><section class="lf-card"><h2>Alertes et risques</h2><p>'+lfAlerts.length+' alertes actives · réclamations ouvertes suivies séparément</p><div class="lf-alerts">'+lfAlertHtml()+'</div></section><div id="lf-drawer"></div>'}
+return lfTitle()+'<div class="lf-period"><label>Du <input id="dashboardStart" type="date" value="'+dashboardStart+'"></label><label>Au <input id="dashboardEnd" type="date" value="'+dashboardEnd+'"></label><span>'+rows.length+' expéditions · '+lfDate(dashboardStart)+' — '+lfDate(dashboardEnd)+'</span></div><div class="lf-kpis">'+lfKpi('Nombre d’expéditions',rows.length,'')+lfKpi('En cours',active,'')+lfKpi('En retard',rows.filter(row=>lfStatus(row)==='En retard').length,'Missions ouvertes dont la date promise est dépassée')+lfKpi('OTIF',otif.label,otif.met+'/'+otif.due+' livraisons dues, à l’heure et complètes')+lfKpi('Marge brute',lfMoney(margin),'Prix client − coût transporteur')+lfKpi('Appels d’offres sans réponse',open,'Dossiers ouverts')+lfKpi('Factures impayées',lfMoney(unpaid),'DSO : 32 jours')+lfOperationalKpis(rows,done)+'</div><div class="lf-grid"><section class="lf-card"><h2>Activité des expéditions</h2><p>Volumes hebdomadaires selon le statut · période sélectionnée</p>'+(rows.length?lfChart():'Aucune expédition pour cette période.')+'</section><section class="lf-card"><h2>Types de camions utilisés</h2><p>Taux d’utilisation, nombre de missions et tonnage</p>'+lfTrucks()+'</section></div><section class="lf-card"><h2>Alertes et risques</h2><div id="lf-alert-content" aria-live="polite">'+lfAlertHtml()+'</div></section><div id="lf-drawer"></div>'}
 function lfNav(){let count=disputes.filter(d=>d[4]!=='Résolu').length,ops=[['dashboard','▦','Tableau de bord'],['shipments','⇄','Expéditions'],['offers','◇','Appels d’offres'],['tracking','⌖','Suivi d’expédition'],['documents','▤','Documents'],['billing','▧','Facturation'],['disputes','⚑','Litiges']],mg=[['clients','♙','Clients'],['carriers','▣','Transporteurs'],['tariffs','⌁','Tarifs et grilles'],['reports','▥','Rapports']];document.querySelector('#nav').innerHTML='<div class="lf-nav-group"><small>EXPLOITATION</small>'+ops.map(x=>'<button data-page="'+x[0]+'" class="'+(page===x[0]?'active':'')+'"><span class="nav-icon">'+x[1]+'</span>'+x[2]+(x[0]==='disputes'?'<i>'+count+'</i>':'')+'</button>').join('')+'</div><div class="lf-nav-group"><small>GESTION</small>'+mg.map(x=>'<button data-page="'+x[0]+'" class="'+(page===x[0]?'active':'')+'"><span class="nav-icon">'+x[1]+'</span>'+x[2]+'</button>').join('')+'</div>';document.querySelector('#nav').onclick=e=>{let b=e.target.closest('[data-page]');if(b){e.preventDefault();e.stopPropagation();go(b.dataset.page)}}}
 function lfSimple(k){if(k==='shipments')return '<div class="lf-title"><div><div class="lf-breadcrumb">Accueil › Expéditions</div><h1>Expéditions</h1><p>Portefeuille des missions de transport.</p></div></div><section class="lf-card"><div id="lf-table-root">'+lfTable()+'</div></section><div id="lf-drawer"></div>';let title=k==='tariffs'?'Tarifs et grilles':'Rapports';return '<div class="lf-title"><div><div class="lf-breadcrumb">Accueil › Gestion › '+title+'</div><h1>'+title+'</h1><p>Indicateurs et référentiel du commissionnaire.</p></div></div><section class="lf-card"><h2>'+title+' · MAD</h2><p>National : marge maximale de 800 MAD · international : marge minimale de 3 000 MAD.</p><p>Valeurs de démonstration à valider selon les accords transporteurs et les frais de passage frontière.</p></section>'}
 const lfBaseRender=render;
@@ -206,8 +238,29 @@ function lfDemoDeliveryDetails(row) {
     '<span>' + label + '</span><b>' + lfEsc(value) + '</b>').join('');
 }
 
-function lfDrawer(ref){let r=lfR.find(x=>x.ref===ref);if(!r)return;let a=lfAlerts.find(x=>x.ref===ref),s=lfStatus(r);document.querySelector('#lf-drawer').innerHTML='<div class="lf-overlay" data-lf-close></div><aside class="lf-drawer-panel"><button data-lf-close class="lf-x">×</button><small>DOSSIER TRANSPORT</small><h2>'+r.ref+'</h2><b class="lf-status '+s.toLowerCase().replaceAll(' ','-')+'">'+s+'</b><h3>'+lfEsc(r.route)+'</h3><p>'+lfEsc(r.client)+' · '+lfEsc(r.zone)+'</p><div class="lf-details"><span>Transporteur / plaque</span><b>'+lfEsc(r.carrier)+' · '+lfEsc(r.plate)+'</b><span>Camion</span><b>'+lfEsc(r.truck)+'</b><span>Poids / volume / palettes</span><b>'+r.weight+' t · '+r.volume+' m³ · '+r.pallets+'</b><span>'+(r.incoterm?'Incoterm · ETA':'ETA')+'</span><b>'+(r.incoterm?lfEsc(r.incoterm)+' · ':'')+lfDate(r.eta)+'</b><span>Prix · coût · marge</span><b>'+lfMoney(r.price)+' · '+lfMoney(r.cost)+' · '+lfMoney(r.price-r.cost)+'</b><span>Marchandise</span><b>'+lfEsc(r.goods)+'</b>'+lfDemoDeliveryDetails(r)+'</div><h3>Étapes et documents</h3><p>Demande → transporteur attribué → chargement → passage frontière → livraison</p><p>CMR · bon de chargement · '+(r.delivered?'preuve de livraison':'documents transport')+'</p><h3>Alertes et historique</h3><p>'+(a?lfEsc(a.kind)+' · depuis '+a.days+' j':'Aucune alerte active')+'</p><p>Dernière activité : '+lfDate(r.dispatch)+'</p></aside>'}
-function lfAct(a,ref){if(a==='Téléverser le document'){let f=document.createElement('input');f.type='file';f.accept='.pdf,.jpg,.jpeg,.png';f.onchange=()=>{if(f.files.length)toast(f.files[0].name+' sélectionné · démonstration sans transfert serveur')};f.click()}else toast(a+' · action enregistrée dans la démonstration · '+ref)}
+function lfDrawer(ref){let r=lfR.find(x=>x.ref===ref);if(!r)return;let a=lfAlerts.find(x=>x.ref===ref),s=lfStatus(r);document.querySelector('#lf-drawer').innerHTML='<div class="lf-overlay" data-lf-close></div><aside class="lf-drawer-panel"><button data-lf-close class="lf-x">×</button><small>DOSSIER TRANSPORT</small><h2>'+r.ref+'</h2><b class="lf-status '+s.toLowerCase().replaceAll(' ','-')+'">'+s+'</b><h3>'+lfEsc(r.route)+'</h3><p>'+lfEsc(r.client)+' · '+lfEsc(r.zone)+'</p><div class="lf-details"><span>Transporteur / plaque</span><b>'+lfEsc(r.carrier)+' · '+lfEsc(r.plate)+'</b><span>Camion</span><b>'+lfEsc(r.truck)+'</b><span>Poids / volume / palettes</span><b>'+r.weight+' t · '+r.volume+' m³ · '+r.pallets+'</b><span>'+(r.incoterm?'Incoterm · ETA':'ETA')+'</span><b>'+(r.incoterm?lfEsc(r.incoterm)+' · ':'')+lfDate(r.eta)+'</b><span>Prix · coût · marge</span><b>'+lfMoney(r.price)+' · '+lfMoney(r.cost)+' · '+lfMoney(r.price-r.cost)+'</b><span>Marchandise</span><b>'+lfEsc(r.goods)+'</b>'+lfDemoDeliveryDetails(r)+'</div><h3>Étapes et documents</h3><p>Demande → transporteur attribué → chargement → passage frontière → livraison</p><p>CMR · bon de chargement · '+(r.delivered?'preuve de livraison':'documents transport')+'</p><h3>Alertes et historique</h3><p>'+(a?lfEsc(a.kind):'Aucune alerte')+'</p>'+(a?lfAlertWorkflow(a):'')+'<p>Dernière activité : '+lfDate(r.dispatch)+'</p></aside>'}
+function lfAct(action, ref) {
+  const alert = lfAlerts.find(item => item.ref === ref);
+  if (!alert) return;
+
+  const status = lfAlertProgress[ref]?.status || 'À traiter';
+  if ((action === 'start' && status !== 'À traiter') ||
+      (action === 'resolve' && status !== 'En cours') ||
+      (action !== 'start' && action !== 'resolve')) return;
+
+  lfAlertProgress[ref] = {
+    status: action === 'start' ? 'En cours' : 'Résolue',
+    action: action === 'start' ? alert.action : 'Alerte marquée comme résolue',
+    when: new Intl.DateTimeFormat('fr-MA', {
+      timeZone: 'Africa/Casablanca', dateStyle: 'short', timeStyle: 'short'
+    }).format(new Date())
+  };
+  try { localStorage.setItem(lfAlertStorageKey, JSON.stringify(lfAlertProgress)); } catch {}
+  const list = document.querySelector('#lf-alert-content');
+  if (list) list.innerHTML = lfAlertHtml();
+  if (document.querySelector('.lf-drawer-panel h2')?.textContent === ref) lfDrawer(ref);
+  toast(lfAlertProgress[ref].status + ' · Action simulée');
+}
 function lfCreate(a){if(a==='Nouvelle expédition'||a==='Nouvel appel d’offres'){createFor(a);return}modal(a,'<div class="form-grid"><div class="field"><label>Client</label><input placeholder="Nom du chargeur"></div><div class="field"><label>Trajet</label><input placeholder="Départ → destination"></div><div class="field"><label>Marchandise</label><input placeholder="Nature et contraintes"></div><div class="field"><label>Poids / volume</label><input placeholder="tonnes / m³"></div></div>','Enregistrer la demande')}
 function lfBind(){
   document.addEventListener('click', event => {
