@@ -166,7 +166,8 @@ function lfAlertWorkflow(alert) {
 function lfAlertHtml() {
   const active = lfAlerts.filter(alert => lfAlertProgress[alert.ref]?.status !== 'Résolue');
   active.sort((a, b) => Number(b.severity === 'critique') - Number(a.severity === 'critique'));
-  const cards = active.map(alert =>
+  const resolved = lfAlerts.filter(alert => lfAlertProgress[alert.ref]?.status === 'Résolue');
+  const renderCards = alerts => alerts.map(alert =>
     '<article class="lf-alert ' + alert.severity + '"><div><b>' + lfEsc(alert.kind) +
     '</b><span>' + (alert.severity === 'critique' ? 'Critique' : 'Moyenne') +
     '</span></div><a href="#" data-lf-row="' + lfEsc(alert.ref) + '">' +
@@ -174,7 +175,8 @@ function lfAlertHtml() {
     '</p>' + lfAlertWorkflow(alert) + '</article>').join('');
   return '<p>' + active.length + ' ' + (active.length === 1 ? 'alerte active' : 'alertes actives') +
     ' · Actions simulées en mode démo</p><div class="lf-alerts">' +
-    (cards || '<p>Aucune alerte active.</p>') + '</div>';
+    (renderCards(active) || '<p>Aucune alerte active.</p>') + '</div>' +
+    (resolved.length ? '<h3>Alertes résolues</h3><div class="lf-alerts">' + renderCards(resolved) + '</div>' : '');
 }
 function lfTitle(){return '<div class="lf-title"><div><div class="lf-breadcrumb">Accueil <span>›</span> Tableau de bord <span class="lf-mode">Mode démo · 24 nov. 2026</span></div><h1>Tableau de bord</h1></div><div class="lf-actions"><button data-lf-create="Nouvelle expédition">＋ Nouvelle expédition</button></div></div>'}
 function lfPayload(row) {
