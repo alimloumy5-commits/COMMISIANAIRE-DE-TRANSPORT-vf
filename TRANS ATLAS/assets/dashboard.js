@@ -151,7 +151,7 @@ function lfTrucks() {
       utilization + '%"></span></i><small>' + shipments.length + ' expédition(s) · ' + weight +
       ' t · flotte ' + fleetSize + ' véhicules</small><details><summary style="cursor:pointer">' +
       'Voir les expéditions <span aria-hidden="true">· ' + shipments.length + '</span></summary>' + list + '</details></div>';
-  }).join('') + '<p class="lf-note">Les types sans mission restent à 0 %. Capacités indicatives à vérifier selon la carte grise, le PTAC et la configuration réelle.</p>';
+  }).join('') + '';
 }
 const lfAlertStorageKey = 'logiflow-alert-progress-v1';
 let lfAlertProgress = {};
