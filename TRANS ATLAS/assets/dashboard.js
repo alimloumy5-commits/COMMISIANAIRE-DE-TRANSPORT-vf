@@ -4,8 +4,8 @@ const lfR=[
 {"ref":"EXP-2026-0842","client":"Atlas Industries","route":"Casablanca → Tanger Med","zone":"National","carrier":"Trans Atlas","plate":"45 678-A-6","truck":"Semi-remorque bâchée","weight":18.4,"volume":68,"pallets":28,"incoterm":"DAP","dispatch":"2026-11-19","eta":"2026-11-20","delivered":"2026-11-20","status":"Livrée","goods":"Composants automobiles","price":8400,"cost":7850,"distanceKm":367,"receivedPallets":28,"invoiceRef":"FAC-2026-098","pod":"Disponible","scenario":"Livrée à temps et complète, facture émise."},
 {"ref":"EXP-2026-0843","client":"Agro Maroc","route":"Agadir → Rotterdam","zone":"Europe","carrier":"Souss Transport","plate":"23 519-B-6","truck":"Semi-remorque frigorifique","weight":20,"volume":82,"pallets":30,"incoterm":"CPT","dispatch":"2026-11-18","eta":"2026-11-23","status":"En transit","goods":"Agrumes frais · 4 °C","price":29800,"cost":25200,"distanceKm":3148,"scenario":"Retard ouvert après une excursion de température."},
 {"ref":"EXP-2026-0844","client":"Maroc Distribution","route":"Casablanca → Dakar","zone":"Afrique subsaharienne","carrier":"Maghreb Express","plate":"67 214-A-6","truck":"Tautliner","weight":21.5,"volume":88,"pallets":32,"incoterm":"DAP","dispatch":"2026-11-18","eta":"2026-11-26","status":"En douane","goods":"Produits secs · passage frontière","price":34600,"cost":30200,"distanceKm":2843,"scenario":"Contrôle du dossier de passage frontière en cours."},
-{"ref":"EXP-2026-0845","client":"Textile du Nord","route":"Tanger → Barcelone","zone":"Europe","carrier":"Nord Cargo","plate":"31 806-C-6","truck":"Porte-conteneur","weight":19,"volume":58,"pallets":24,"incoterm":"FCA","dispatch":"2026-11-15","eta":"2026-11-19","delivered":"2026-11-20","status":"Livrée","goods":"Textile conditionné","price":24200,"cost":19800,"distanceKm":1095,"receivedPallets":24,"pod":"Manquante","scenario":"Livrée avec un jour de retard."},
-{"ref":"EXP-2026-0847","client":"Atlas Industries","route":"Rabat → Marrakech","zone":"National","carrier":"Trans Atlas","plate":"78 403-A-6","truck":"Porteur plateau","weight":8.2,"volume":34,"pallets":10,"incoterm":"CPT","dispatch":"2026-11-19","eta":"2026-11-20","status":"En transit","goods":"Équipements industriels","price":6900,"cost":6300,"distanceKm":319,"scenario":"Livraison promise dépassée. Transporteur à relancer."},
+{"ref":"EXP-2026-0845","client":"Textile du Nord","route":"Tanger → Barcelone","zone":"Europe","carrier":"Nord Cargo","plate":"34 127-C-6","truck":"Porte-conteneur","capacityT":25,"weight":19,"volume":58,"pallets":24,"incoterm":"FCA","dispatch":"2026-11-15","eta":"2026-11-19","delivered":"2026-11-20","status":"Livrée","goods":"Textile conditionné","price":24200,"cost":19800,"distanceKm":1095,"receivedPallets":24,"pod":"Manquante","scenario":"Livrée avec un jour de retard."},
+{"ref":"EXP-2026-0847","client":"Atlas Industries","route":"Rabat → Marrakech","zone":"National","carrier":"Trans Atlas","plate":"78 403-A-6","truck":"Porteur plateau","capacityT":12,"weight":8.2,"volume":34,"pallets":10,"incoterm":"CPT","dispatch":"2026-11-19","eta":"2026-11-20","status":"En transit","goods":"Équipements industriels","price":6900,"cost":6300,"distanceKm":319,"scenario":"Livraison promise dépassée. Transporteur à relancer."},
 {"ref":"EXP-2026-0850","client":"Fresh Export","route":"Agadir → Rotterdam","zone":"Europe","carrier":"Nord Cargo","plate":"31 806-C-6","truck":"Semi-remorque frigorifique","weight":18,"volume":78,"pallets":28,"incoterm":"CIP","dispatch":"2026-11-14","eta":"2026-11-18","delivered":"2026-11-17","status":"Livrée","goods":"Fruits et légumes frais · 4 °C","price":31400,"cost":27000,"distanceKm":3148,"receivedPallets":26,"pod":"Disponible avec réserve","scenario":"Livrée à temps, mais 26 palettes reçues sur 28."},
 {"ref":"EXP-2026-0851","client":"Maroc Distribution","route":"Casablanca → Nouakchott","zone":"Afrique subsaharienne","carrier":"Maghreb Express","plate":"67 214-A-6","truck":"Tautliner","weight":20.5,"volume":77,"pallets":30,"incoterm":"DAP","dispatch":"2026-11-24","eta":"2026-11-28","status":"En transit","goods":"Produits alimentaires secs","price":24500,"cost":20800,"distanceKm":2332,"scenario":"Camion parti, livraison prévue dans le délai convenu."},
 {"ref":"EXP-2026-0852","client":"Atlas Industries","route":"Casablanca → Bamako","zone":"Afrique subsaharienne","carrier":"Maghreb Express","plate":"62 491-A-6","truck":"Semi-remorque bâchée","weight":19.2,"volume":72,"pallets":27,"incoterm":"DAP","dispatch":"2026-11-24","eta":"2026-11-30","status":"En transit","goods":"Pièces industrielles","price":42800,"cost":36900,"distanceKm":3672,"scenario":"Trajet vers Bamako en cours."},
@@ -87,6 +87,16 @@ function lfTrucks(){let rows=lfPeriod();return lfFleet.map(f=>{let name=f[0],a=r
 function lfAlertHtml(){return lfAlerts.map(a=>'<article class="lf-alert '+a.severity+'"><div><b>'+a.kind+'</b><span>depuis '+a.days+' j · '+(a.severity==='critique'?'Critique':'Moyenne')+'</span></div><a href="#" data-lf-row="'+a.ref+'">'+a.ref+' · '+a.route+'</a><p>'+a.impact+'</p><footer><button data-lf-act="Relancer le transporteur" data-ref="'+a.ref+'">Relancer le transporteur</button><button data-lf-act="Téléverser le document" data-ref="'+a.ref+'">Téléverser le document</button><button data-lf-act="Prévenir le client" data-ref="'+a.ref+'">Prévenir le client</button></footer></article>').join('')}
 function lfFunnelHtml(){return '<div class="lf-funnel">'+lfFunnel.map((x,i)=>'<div><span>'+x[0]+'</span><b>'+x[1]+'</b><i><em style="width:'+(x[1]/lfFunnel[0][1]*100)+'%"></em></i><small>'+(i?Math.round(x[1]/lfFunnel[i-1][1]*100)+' % depuis '+lfFunnel[i-1][0].toLowerCase():'Entrée du pipeline')+'</small></div>').join('')+'</div>'}
 function lfTitle(){return '<div class="lf-title"><div><div class="lf-breadcrumb">Accueil <span>›</span> Tableau de bord <span class="lf-mode">Mode démo · 24 nov. 2026</span></div><h1>Tableau de bord</h1><p>Suivez les missions, les marges et les points à traiter.</p></div><div class="lf-actions"><button data-lf-create="Nouvelle expédition">＋ Nouvelle expédition</button><button data-lf-create="Nouvel appel d’offres">Nouvel appel d’offres</button><button data-lf-create="Demander un devis">Demander un devis</button></div></div>'}
+function lfPayload(row) {
+  const type = row.truck === 'Tautliner' ? 'Semi-remorque tautliner' : row.truck;
+  return row.capacityT ?? truckCatalog().find(truck => truck.type === type)?.payload;
+}
+
+function lfLoadFactor(row) {
+  const payload = lfPayload(row);
+  return payload > 0 && Number.isFinite(row.weight) ? 100 * row.weight / payload : null;
+}
+
 function lfOperationalKpis(rows, delivered) {
   const number = new Intl.NumberFormat('fr-FR', {maximumFractionDigits: 2});
   const format = (value, unit) => value === null ? '—' : number.format(value) + ' ' + unit;
@@ -98,12 +108,7 @@ function lfOperationalKpis(rows, delivered) {
   const duration = delivered.map(row => (Date.parse(row.delivered) - Date.parse(row.dispatch)) / 86400000)
     .filter(days => Number.isFinite(days) && days >= 0);
   const average = values => values.length ? values.reduce((total, value) => total + value, 0) / values.length : null;
-  const catalog = new Map(truckCatalog().map(truck => [truck.type, truck.payload]));
-  const filling = rows.flatMap(row => {
-    const type = row.truck === 'Tautliner' ? 'Semi-remorque tautliner' : row.truck;
-    const capacity = row.capacityT ?? catalog.get(type);
-    return capacity > 0 && Number.isFinite(row.weight) ? [100 * row.weight / capacity] : [];
-  });
+  const filling = rows.map(lfLoadFactor).filter(Number.isFinite);
   const costKm = rate('distanceKm');
   const cards = [
     ['Tonnage transporté', format(sum(rows.filter(row => Number.isFinite(row.weight)), 'weight'), 't'), 'Poids des expéditions parties sur la période'],
@@ -132,6 +137,12 @@ render=function(){if(['dashboard','shipments','tariffs','reports','carriers'].in
 
 function lfDemoDeliveryDetails(row) {
   const fields = [['Situation', row.scenario]];
+  const filling = lfLoadFactor(row);
+  if (filling !== null) {
+    const format = new Intl.NumberFormat('fr-FR', {maximumFractionDigits: 2});
+    fields.push(['Charge utile indicative', format.format(lfPayload(row)) + ' t']);
+    fields.push(['Remplissage en poids', format.format(filling) + ' %']);
+  }
   if (row.delivered) {
     fields.push(['Livraison effective', lfDate(row.delivered)]);
     fields.push(['Palettes reçues / prévues', (row.receivedPallets ?? '—') + ' / ' + row.pallets]);
