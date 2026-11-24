@@ -151,35 +151,28 @@ try {
 } catch {}
 
 function lfAlertWorkflow(alert) {
-  const progress = lfAlertProgress[alert.ref];
+  const saved = lfAlertProgress[alert.ref];
+  const progress = saved?.status === 'En cours' ? saved : null;
   const status = progress?.status || 'À traiter';
   const reported = new Date(Date.parse(lfDemoDate) - alert.days * 86400000).toISOString().slice(0, 10);
   const lastAction = progress ? lfEsc(progress.action) + ' · ' + lfEsc(progress.when) : 'Aucune action enregistrée';
-  const next = status === 'À traiter' ? 'start' : 'resolve';
-  const label = status === 'À traiter' ? alert.action : 'Marquer comme résolue';
   return '<p><b>Statut : ' + lfEsc(status) + '</b><br>Signalée le ' + lfDate(reported) +
     '<br>Dernière action : ' + lastAction + '</p>' +
-    (status === 'Résolue' ? '' : '<footer><button type="button" data-lf-act="' + next +
-      '" data-ref="' + lfEsc(alert.ref) + '">' + lfEsc(label) + '</button></footer>');
+    (status === 'À traiter' ? '<footer><button type="button" data-lf-act="start" data-ref="' +
+      lfEsc(alert.ref) + '">' + lfEsc(alert.action) + '</button></footer>' : '');
 }
 
 function lfAlertHtml() {
-  const active = lfAlerts.filter(alert => lfAlertProgress[alert.ref]?.status !== 'Résolue');
+  const active = [...lfAlerts];
   active.sort((a, b) => Number(b.severity === 'critique') - Number(a.severity === 'critique'));
-  const resolved = lfAlerts.filter(alert => lfAlertProgress[alert.ref]?.status === 'Résolue');
   const renderCards = alerts => alerts.map(alert =>
     '<article class="lf-alert ' + alert.severity + '"><div><b>' + lfEsc(alert.kind) +
     '</b><span>' + (alert.severity === 'critique' ? 'Critique' : 'Moyenne') +
     '</span></div><a href="#" data-lf-row="' + lfEsc(alert.ref) + '">' +
     lfEsc(alert.ref + ' · ' + alert.route) + '</a><p>' + lfEsc(alert.impact) +
     '</p>' + lfAlertWorkflow(alert) + '</article>').join('');
-  return '<p>Actions simulées en mode démo</p>' +
-    '<details id="lf-alert-active" open><summary style="cursor:pointer">Alertes actives (' +
-    active.length + ')</summary><div class="lf-alerts">' +
-    (renderCards(active) || '<p>Aucune alerte active.</p>') + '</div></details>' +
-    '<details id="lf-alert-resolved" open><summary style="cursor:pointer">Alertes résolues (' +
-    resolved.length + ')</summary><div class="lf-alerts">' +
-    (renderCards(resolved) || '<p>Aucune alerte résolue.</p>') + '</div></details>';
+  return '<p>' + active.length + ' alertes actives · Actions simulées en mode démo</p>' +
+    '<div class="lf-alerts">' + renderCards(active) + '</div>';
 }
 function lfTitle(){return '<div class="lf-title"><div><div class="lf-breadcrumb">Accueil <span>›</span> Tableau de bord <span class="lf-mode">Mode démo · 24 nov. 2026</span></div><h1>Tableau de bord</h1></div><div class="lf-actions"><button data-lf-create="Nouvelle expédition">＋ Nouvelle expédition</button></div></div>'}
 function lfPayload(row) {
@@ -248,25 +241,18 @@ function lfAct(action, ref) {
   const alert = lfAlerts.find(item => item.ref === ref);
   if (!alert) return;
 
-  const status = lfAlertProgress[ref]?.status || 'À traiter';
-  if ((action === 'start' && status !== 'À traiter') ||
-      (action === 'resolve' && status !== 'En cours') ||
-      (action !== 'start' && action !== 'resolve')) return;
+  if (action !== 'start' || lfAlertProgress[ref]?.status === 'En cours') return;
 
   lfAlertProgress[ref] = {
-    status: action === 'start' ? 'En cours' : 'Résolue',
-    action: action === 'start' ? alert.action : 'Alerte marquée comme résolue',
+    status: 'En cours',
+    action: alert.action,
     when: new Intl.DateTimeFormat('fr-MA', {
       timeZone: 'Africa/Casablanca', dateStyle: 'short', timeStyle: 'short'
     }).format(new Date())
   };
   try { localStorage.setItem(lfAlertStorageKey, JSON.stringify(lfAlertProgress)); } catch {}
   const list = document.querySelector('#lf-alert-content');
-  if (list) {
-    const closed = [...list.querySelectorAll('details:not([open])')].map(details => details.id);
-    list.innerHTML = lfAlertHtml();
-    for (const id of closed) document.getElementById(id).open = false;
-  }
+  if (list) list.innerHTML = lfAlertHtml();
   if (document.querySelector('.lf-drawer-panel h2')?.textContent === ref) lfDrawer(ref);
   toast(lfAlertProgress[ref].status + ' · Action simulée');
 }
