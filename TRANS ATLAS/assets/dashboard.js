@@ -101,23 +101,18 @@ function lfOperationalKpis(rows, delivered) {
   const number = new Intl.NumberFormat('fr-FR', {maximumFractionDigits: 2});
   const format = (value, unit) => value === null ? '—' : number.format(value) + ' ' + unit;
   const sum = (items, key) => items.reduce((total, row) => total + row[key], 0);
-  const rate = key => {
-    const items = rows.filter(row => Number.isFinite(row.cost) && Number.isFinite(row[key]) && row[key] > 0);
-    return items.length ? sum(items, 'cost') / sum(items, key) : null;
-  };
   const duration = delivered.map(row => (Date.parse(row.delivered) - Date.parse(row.dispatch)) / 86400000)
     .filter(days => Number.isFinite(days) && days >= 0);
   const average = values => values.length ? values.reduce((total, value) => total + value, 0) / values.length : null;
   const filling = rows.map(lfLoadFactor).filter(Number.isFinite);
-  const costKm = rate('distanceKm');
+  const roadRows = rows.filter(row => Number.isFinite(row.cost) && Number.isFinite(row.distanceKm) && row.distanceKm > 0);
+  const costKm = roadRows.length ? sum(roadRows, 'cost') / sum(roadRows, 'distanceKm') : null;
   const cards = [
     ['Tonnage transporté', format(sum(rows.filter(row => Number.isFinite(row.weight)), 'weight'), 't'), 'Poids des expéditions parties sur la période'],
-    ['Coût moyen au kilomètre et à la tonne', format(costKm, 'MAD/km') + ' · ' + format(rate('weight'), 'MAD/t'),
-      costKm === null ? 'Distance non renseignée pour le coût/km' : 'Distance routière estimée hors ferry · coût transporteur / km et / t'],
+    ['Coût moyen au kilomètre', format(costKm, 'MAD/km')],
     ['Expéditions livrées', delivered.length, 'Livraisons effectuées pour les expéditions de la période'],
     ['Délai moyen de transit', format(average(duration), 'j'), 'Du départ à la livraison effective'],
-    ['Taux de remplissage moyen', format(average(filling), '%'), filling.length
-      ? 'Charge utile indicative · ' + filling.length + '/' + rows.length + ' expéditions' : 'Charge utile non renseignée']
+    ['Taux de remplissage moyen', format(average(filling), '%')]
   ];
   return cards.map(([label, value, note]) => lfKpi(label, value, note)).join('');
 }
