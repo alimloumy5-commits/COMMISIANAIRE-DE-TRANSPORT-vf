@@ -165,8 +165,8 @@ function lfAlertWorkflow(alert) {
     (status === 'Résolue' ? '' : '<footer>' +
       (status === 'À traiter' ? '<button type="button" data-lf-act="start" data-ref="' +
         lfEsc(alert.ref) + '">' + lfEsc(alert.action) + '</button>' : '') +
-      (alert.ref === 'EXP-2026-0843' ? '<button type="button" data-lf-act="resolve" data-ref="' +
-        lfEsc(alert.ref) + '">Marquer comme résolue</button>' : '') + '</footer>');
+      '<button type="button" data-lf-act="resolve" data-ref="' +
+        lfEsc(alert.ref) + '">Marquer comme résolue</button></footer>');
 }
 
 function lfAlertHtml() {
@@ -250,7 +250,7 @@ function lfAct(action, ref) {
   if (!alert) return;
 
   const status = lfCurrentAlertProgress(ref)?.status || 'À traiter';
-  const resolve = action === 'resolve' && ref === 'EXP-2026-0843';
+  const resolve = action === 'resolve';
   if (status === 'Résolue' || (!resolve && (action !== 'start' || status !== 'À traiter'))) return;
 
   lfAlertProgress[ref] = {
