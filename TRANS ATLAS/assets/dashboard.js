@@ -105,7 +105,7 @@ function lfChart() {
     const dash = ['', ' stroke-dasharray="6 3"', ' stroke-dasharray="2 3"'][i];
     return '<polyline points="' + points + '" fill="none" stroke="' + color + '" stroke-width="2"' + dash + '/>';
   }).join('');
-  const dots = buckets.map(([label, counts], j) => series.map(([key, name, color]) => {
+  const dots = buckets.map(([label, counts], j) => series.filter(([key]) => counts[key] > 0).map(([key, name, color]) => {
     const marker = ' cx="' + pointX(counts, j, key) + '" cy="' + y(counts[key]) + '"';
     const title = label + ' · ' + name + ' : ' + counts[key];
     return '<g role="button" tabindex="0" aria-pressed="false" aria-label="' + lfEsc(title) +
