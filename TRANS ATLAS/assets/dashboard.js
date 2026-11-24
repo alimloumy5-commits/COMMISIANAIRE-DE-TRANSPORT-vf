@@ -4,12 +4,12 @@ const lfR=[
 {"ref":"EXP-2026-0842","client":"Atlas Industries","route":"Casablanca → Tanger Med","zone":"National","carrier":"Trans Atlas","plate":"45 678-A-6","truck":"Semi-remorque bâchée","weight":18.4,"volume":68,"pallets":28,"incoterm":"DAP","dispatch":"2026-11-19","eta":"2026-11-20","delivered":"2026-11-20","status":"Livrée","goods":"Composants automobiles","price":8400,"cost":7850,"distanceKm":367,"receivedPallets":28,"invoiceRef":"FAC-2026-098","pod":"Disponible","scenario":"Livrée à temps et complète, facture émise."},
 {"ref":"EXP-2026-0843","client":"Agro Maroc","route":"Agadir → Rotterdam","zone":"Europe","carrier":"Souss Transport","plate":"23 519-B-6","truck":"Semi-remorque frigorifique","weight":20,"volume":82,"pallets":30,"incoterm":"CPT","dispatch":"2026-11-18","eta":"2026-11-23","status":"En transit","goods":"Agrumes frais · 4 °C","price":29800,"cost":25200,"distanceKm":3148,"scenario":"Retard ouvert après une excursion de température."},
 {"ref":"EXP-2026-0844","client":"Maroc Distribution","route":"Casablanca → Dakar","zone":"Afrique subsaharienne","carrier":"Maghreb Express","plate":"67 214-A-6","truck":"Tautliner","weight":21.5,"volume":88,"pallets":32,"incoterm":"DAP","dispatch":"2026-11-18","eta":"2026-11-26","status":"En douane","goods":"Produits secs · passage frontière","price":34600,"cost":30200,"distanceKm":2843,"scenario":"Contrôle du dossier de passage frontière en cours."},
-{"ref":"EXP-2026-0845","client":"Textile du Nord","route":"Tanger → Barcelone","zone":"Europe","carrier":"Nord Cargo","plate":"31 806-C-6","truck":"Porte-conteneur","weight":19,"volume":58,"pallets":24,"incoterm":"FCA","dispatch":"2026-11-15","eta":"2026-11-19","delivered":"2026-11-20","status":"Livrée","goods":"Textile conditionné","price":24200,"cost":19800,"distanceKm":1095,"receivedPallets":24,"invoiced":false,"pod":"Manquante","scenario":"Livrée avec un jour de retard. Facturation bloquée par la preuve de livraison manquante."},
+{"ref":"EXP-2026-0845","client":"Textile du Nord","route":"Tanger → Barcelone","zone":"Europe","carrier":"Nord Cargo","plate":"31 806-C-6","truck":"Porte-conteneur","weight":19,"volume":58,"pallets":24,"incoterm":"FCA","dispatch":"2026-11-15","eta":"2026-11-19","delivered":"2026-11-20","status":"Livrée","goods":"Textile conditionné","price":24200,"cost":19800,"distanceKm":1095,"receivedPallets":24,"pod":"Manquante","scenario":"Livrée avec un jour de retard."},
 {"ref":"EXP-2026-0847","client":"Atlas Industries","route":"Rabat → Marrakech","zone":"National","carrier":"Trans Atlas","plate":"78 403-A-6","truck":"Porteur plateau","weight":8.2,"volume":34,"pallets":10,"incoterm":"CPT","dispatch":"2026-11-19","eta":"2026-11-20","status":"En transit","goods":"Équipements industriels","price":6900,"cost":6300,"distanceKm":319,"scenario":"Livraison promise dépassée. Transporteur à relancer."},
-{"ref":"EXP-2026-0850","client":"Fresh Export","route":"Agadir → Rotterdam","zone":"Europe","carrier":"Nord Cargo","plate":"31 806-C-6","truck":"Semi-remorque frigorifique","weight":18,"volume":78,"pallets":28,"incoterm":"CIP","dispatch":"2026-11-14","eta":"2026-11-18","delivered":"2026-11-17","status":"Livrée","goods":"Fruits et légumes frais · 4 °C","price":31400,"cost":27000,"distanceKm":3148,"receivedPallets":26,"invoiced":false,"pod":"Disponible avec réserve","scenario":"Livrée à temps, mais 26 palettes reçues sur 28. Facturation en attente de rapprochement."},
+{"ref":"EXP-2026-0850","client":"Fresh Export","route":"Agadir → Rotterdam","zone":"Europe","carrier":"Nord Cargo","plate":"31 806-C-6","truck":"Semi-remorque frigorifique","weight":18,"volume":78,"pallets":28,"incoterm":"CIP","dispatch":"2026-11-14","eta":"2026-11-18","delivered":"2026-11-17","status":"Livrée","goods":"Fruits et légumes frais · 4 °C","price":31400,"cost":27000,"distanceKm":3148,"receivedPallets":26,"pod":"Disponible avec réserve","scenario":"Livrée à temps, mais 26 palettes reçues sur 28."},
 {"ref":"EXP-2026-0851","client":"Maroc Distribution","route":"Casablanca → Nouakchott","zone":"Afrique subsaharienne","carrier":"Maghreb Express","plate":"67 214-A-6","truck":"Tautliner","weight":20.5,"volume":77,"pallets":30,"incoterm":"DAP","dispatch":"2026-11-24","eta":"2026-11-28","status":"En transit","goods":"Produits alimentaires secs","price":24500,"cost":20800,"distanceKm":2332,"scenario":"Camion parti, livraison prévue dans le délai convenu."},
 {"ref":"EXP-2026-0852","client":"Atlas Industries","route":"Casablanca → Bamako","zone":"Afrique subsaharienne","carrier":"Maghreb Express","plate":"62 491-A-6","truck":"Semi-remorque bâchée","weight":19.2,"volume":72,"pallets":27,"incoterm":"DAP","dispatch":"2026-11-24","eta":"2026-11-30","status":"En transit","goods":"Pièces industrielles","price":42800,"cost":36900,"distanceKm":3672,"scenario":"Trajet vers Bamako en cours."},
-{"ref":"EXP-2026-0853","client":"Atlas Industries","route":"Casablanca → Fès","zone":"National","carrier":"Trans Atlas","plate":"45 678-A-6","truck":"Semi-remorque bâchée","weight":16.2,"volume":56,"pallets":23,"incoterm":"CPT","dispatch":"2026-11-23","eta":"2026-11-24","delivered":"2026-11-24","status":"Livrée","goods":"Composants automobiles","price":7400,"cost":6200,"distanceKm":294,"receivedPallets":23,"invoiced":false,"pod":"Disponible","scenario":"Livrée à temps et complète, prête à facturer."},
+{"ref":"EXP-2026-0853","client":"Atlas Industries","route":"Casablanca → Fès","zone":"National","carrier":"Trans Atlas","plate":"45 678-A-6","truck":"Semi-remorque bâchée","weight":16.2,"volume":56,"pallets":23,"incoterm":"CPT","dispatch":"2026-11-23","eta":"2026-11-24","delivered":"2026-11-24","status":"Livrée","goods":"Composants automobiles","price":7400,"cost":6200,"distanceKm":294,"receivedPallets":23,"pod":"Disponible","scenario":"Livrée à temps et complète."},
 {"ref":"EXP-2026-0854","client":"Textile du Nord","route":"Tanger → Lyon","zone":"Europe","carrier":"Nord Cargo","plate":"32 113-C-6","truck":"Semi-remorque bâchée","weight":17.8,"volume":69,"pallets":28,"incoterm":"CPT","dispatch":"2026-11-24","eta":"2026-11-28","status":"Chargement","goods":"Textile conditionné","price":26400,"cost":22400,"distanceKm":1715,"scenario":"Camion affecté. Chargement à Tanger avant le départ."},
 ];
 function lfStatus(r){if(r.delivered)return 'Livrée';return r.eta<lfDemoDate?'En retard':r.status}
@@ -20,7 +20,7 @@ function lfPeriod(){return lfR.filter(r=>r.dispatch>=dashboardStart&&r.dispatch<
 const lfFleet=[['Semi-remorque bâchée',32],['Tautliner',18],['Frigorifique',20],['Citerne',8],['Plateau',12],['Porte-conteneur',14],['ADR (matières dangereuses)',6]];
 const lfAlerts=[
 {kind:'Excursion de température',severity:'critique',days:0,ref:'EXP-2026-0843',impact:'Risque qualité · Agro Maroc',route:'Agadir → Rotterdam'},
-{kind:'Preuve de livraison (POD) manquante',severity:'moyenne',days:2,ref:'EXP-2026-0845',impact:'Facturation bloquée · Textile du Nord',route:'Tanger → Barcelone'},
+{kind:'Preuve de livraison (POD) manquante',severity:'moyenne',days:2,ref:'EXP-2026-0845',impact:'Justificatif à récupérer · Textile du Nord',route:'Tanger → Barcelone'},
 {kind:'Document de frontière à confirmer',severity:'moyenne',days:0,ref:'EXP-2026-0844',impact:'Vérifier le dossier de passage · Maroc Distribution',route:'Casablanca → Dakar'}];
 const lfFunnel=[['Demande',42],['Cotation',35],['Appel d’offres',26],['Attribué',18],['En transport',12],['Livré',9],['Facturé',7]];
 let lfFilters={status:'',client:'',carrier:'',zone:'',search:'',sort:'dispatch',direction:-1,page:1};
@@ -95,9 +95,6 @@ function lfOperationalKpis(rows, delivered) {
     const items = rows.filter(row => Number.isFinite(row.cost) && Number.isFinite(row[key]) && row[key] > 0);
     return items.length ? sum(items, 'cost') / sum(items, key) : null;
   };
-  const unbilled = delivered.filter(row => !row.invoiceRef && row.invoiced === false);
-  const billingIncomplete = delivered.some(row => !row.invoiceRef && row.invoiced !== false);
-  const unbilledValue = billingIncomplete ? (unbilled.length ? '≥ ' + unbilled.length : '—') : unbilled.length;
   const duration = delivered.map(row => (Date.parse(row.delivered) - Date.parse(row.dispatch)) / 86400000)
     .filter(days => Number.isFinite(days) && days >= 0);
   const average = values => values.length ? values.reduce((total, value) => total + value, 0) / values.length : null;
@@ -112,8 +109,7 @@ function lfOperationalKpis(rows, delivered) {
     ['Tonnage transporté', format(sum(rows.filter(row => Number.isFinite(row.weight)), 'weight'), 't'), 'Poids des expéditions parties sur la période'],
     ['Coût moyen au kilomètre et à la tonne', format(costKm, 'MAD/km') + ' · ' + format(rate('weight'), 'MAD/t'),
       costKm === null ? 'Distance non renseignée pour le coût/km' : 'Distance routière estimée hors ferry · coût transporteur / km et / t'],
-    ['Expéditions livrées non facturées', unbilledValue,
-      lfMoney(sum(unbilled, 'price')) + ' à facturer' + (billingIncomplete ? ' · données partielles' : '')],
+    ['Expéditions livrées', delivered.length, 'Livraisons effectuées pour les expéditions de la période'],
     ['Délai moyen de transit', format(average(duration), 'j'), 'Du départ à la livraison effective'],
     ['Taux de remplissage moyen', format(average(filling), '%'), filling.length
       ? 'Charge utile indicative · ' + filling.length + '/' + rows.length + ' expéditions' : 'Charge utile non renseignée']
@@ -140,7 +136,7 @@ function lfDemoDeliveryDetails(row) {
     fields.push(['Livraison effective', lfDate(row.delivered)]);
     fields.push(['Palettes reçues / prévues', (row.receivedPallets ?? '—') + ' / ' + row.pallets]);
     fields.push(['Preuve de livraison', row.pod ?? 'Non renseignée']);
-    fields.push(['Facturation', row.invoiceRef ?? (row.invoiced === false ? 'Non facturée' : 'Non renseignée')]);
+    if (row.invoiceRef) fields.push(['Facture', row.invoiceRef]);
   }
   return fields.filter(([, value]) => value).map(([label, value]) =>
     '<span>' + label + '</span><b>' + lfEsc(value) + '</b>').join('');
