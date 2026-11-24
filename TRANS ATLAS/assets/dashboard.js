@@ -32,6 +32,39 @@ let opts=(id,label,items,val)=>'<label>'+label+'<select id="'+id+'"><option valu
 let cnt=s=>lfPeriod().filter(r=>lfStatus(r)===s).length;
 return '<div class="lf-quick"><button data-lf-quick="Livrée" class="'+(lfFilters.status==='Livrée'?'active':'')+'">Livrées <b>'+cnt('Livrée')+'</b></button><button data-lf-quick="En retard" class="'+(lfFilters.status==='En retard'?'active':'')+'">En retard <b>'+cnt('En retard')+'</b></button></div><div class="lf-filters"><input id="lf-search" placeholder="Rechercher une référence, un trajet…" value="'+lfEsc(lfFilters.search)+'">'+opts('lf-status','Statut',[...new Set(lfPeriod().map(lfStatus))],lfFilters.status)+opts('lf-client','Client',[...new Set(lfPeriod().map(r=>r.client))],lfFilters.client)+opts('lf-carrier','Transporteur',[...new Set(lfPeriod().map(r=>r.carrier))],lfFilters.carrier)+opts('lf-zone','Zone',[...new Set(lfPeriod().map(r=>r.zone))],lfFilters.zone)+'</div><div class="lf-table-wrap"><table class="lf-table"><thead><tr>'+head+'</tr></thead><tbody>'+(body||'<tr><td colspan="11">Aucune expédition ne correspond aux filtres choisis.</td></tr>')+'</tbody></table></div><div class="lf-pagination"><span>'+rows.length+' expéditions · page '+lfFilters.page+' / '+pages+'</span><div><button data-lf-pg="'+Math.max(1,lfFilters.page-1)+'" '+(lfFilters.page===1?'disabled':'')+'>Précédent</button><button data-lf-pg="'+Math.min(pages,lfFilters.page+1)+'" '+(lfFilters.page===pages?'disabled':'')+'>Suivant</button></div></div>'}
 function lfKpi(label,value,note){return '<article class="lf-kpi"><span>'+label+'</span><b>'+value+'</b>'+(note?'<small class="lf-kpi-note">'+note+'</small>':'')+'</article>'}
+const lfChartSeries = [['done', 'Livrées', '#16845e'], ['transit', 'En cours', '#2671b5'], ['late', 'En retard', '#bf4c42']];
+
+function lfChartGroup(row) {
+  const status = lfStatus(row);
+  if (status === 'Livrée') return 'done';
+  if (status === 'En retard') return 'late';
+  if (['En transit', 'Chargement', 'En douane'].includes(status)) return 'transit';
+}
+
+function lfShowChartPoint(point) {
+  const week = Number(point.dataset.lfChartWeek);
+  const key = point.dataset.lfChartStatus;
+  const weekMs = 7 * 86400000;
+  const start = Date.parse(dashboardStart) + week * weekMs;
+  const rows = lfPeriod().filter(row => {
+    const dispatch = Date.parse(row.dispatch);
+    return dispatch >= start && dispatch < start + weekMs && lfChartGroup(row) === key;
+  });
+  const container = document.querySelector('#lf-chart-selection');
+  const current = document.querySelector('[data-lf-chart-week][aria-pressed="true"]');
+  if (current) {
+    current.setAttribute('aria-pressed', 'false');
+    current.querySelector('circle.lf-chart-marker').setAttribute('stroke-width', '2');
+  }
+  point.setAttribute('aria-pressed', 'true');
+  point.querySelector('circle.lf-chart-marker').setAttribute('stroke-width', '4');
+  container.innerHTML = '<h3>' + lfEsc(point.getAttribute('aria-label')) + '</h3>' +
+    (rows.length ? '<ul>' + rows.map(row =>
+      '<li><button type="button" class="text-button" data-lf-row="' + lfEsc(row.ref) + '">' +
+      lfEsc(row.ref + ' · ' + row.route) + '</button> · ' + lfEsc(lfStatus(row)) + '</li>').join('') + '</ul>'
+      : '<p>Aucune expédition pour ce point.</p>');
+}
+
 function lfChart() {
   const day = 86400000;
   const start = Date.parse(dashboardStart);
@@ -40,18 +73,15 @@ function lfChart() {
   for (const row of lfPeriod()) {
     const week = Math.floor((Date.parse(row.dispatch) - start) / (7 * day));
     if (!weeks.has(week)) weeks.set(week, {done: 0, transit: 0, late: 0});
-    const status = lfStatus(row);
-    const counts = weeks.get(week);
-    if (status === 'Livrée') counts.done++;
-    if (['En transit', 'Chargement', 'En douane'].includes(status)) counts.transit++;
-    if (status === 'En retard') counts.late++;
+    const group = lfChartGroup(row);
+    if (group) weeks.get(week)[group]++;
   }
   const weekCount = Math.floor((end - start) / (7 * day)) + 1;
   const indexes = weekCount <= 12 ? Array.from({length: weekCount}, (_, index) => index) : [...weeks.keys()].sort((a, b) => a - b);
   const total = counts => counts.done + counts.transit + counts.late;
   const maximum = Math.max(1, ...Array.from(weeks.values(), total));
   const date = new Intl.DateTimeFormat('fr-FR', {day: '2-digit', month: '2-digit', timeZone: 'UTC'});
-  const series = [['done', 'Livrées', '#16845e'], ['transit', 'En cours', '#2671b5'], ['late', 'En retard', '#bf4c42']];
+  const series = lfChartSeries;
   const width = Math.max(400, indexes.length * 88);
   const x = i => indexes.length === 1 ? width / 2 : 38 + i * (width - 76) / (indexes.length - 1);
   const step = Math.max(1, Math.ceil(maximum / 5));
@@ -65,23 +95,31 @@ function lfChart() {
   const grid = Array.from({length: ceiling / step + 1}, (_, i) => i * step).map(value =>
     '<line x1="38" x2="' + (width - 38) + '" y1="' + y(value) + '" y2="' + y(value) +
     '" stroke="#dce6e0"/><text x="29" y="' + (y(value) + 4) + '" text-anchor="end">' + value + '</text>').join('');
-  const lines = series.map(([key, name, color], i) => {
-    const points = buckets.map(([, counts], j) => x(j) + ',' + y(counts[key])).join(' ');
-    const dots = buckets.map(([label, counts], j) =>
-      '<circle cx="' + x(j) + '" cy="' + y(counts[key]) + '" r="' + (5 - i) +
-      '" fill="none" stroke="' + color + '"><title>' + label + ' · ' + name + ' : ' +
-      counts[key] + '</title></circle>').join('');
+  // Spread markers with identical values so each status can be selected.
+  const pointX = (counts, j, key) => {
+    const tied = series.filter(([other]) => counts[other] === counts[key]).map(([other]) => other);
+    return x(j) + (tied.indexOf(key) - (tied.length - 1) / 2) * 18;
+  };
+  const lines = series.map(([key, , color], i) => {
+    const points = buckets.map(([, counts], j) => pointX(counts, j, key) + ',' + y(counts[key])).join(' ');
     const dash = ['', ' stroke-dasharray="6 3"', ' stroke-dasharray="2 3"'][i];
-    return '<polyline points="' + points + '" fill="none" stroke="' + color + '" stroke-width="2"' + dash + '/>' + dots;
+    return '<polyline points="' + points + '" fill="none" stroke="' + color + '" stroke-width="2"' + dash + '/>';
   }).join('');
+  const dots = buckets.map(([label, counts], j) => series.map(([key, name, color]) => {
+    const marker = ' cx="' + pointX(counts, j, key) + '" cy="' + y(counts[key]) + '"';
+    const title = label + ' · ' + name + ' : ' + counts[key];
+    return '<g role="button" tabindex="0" aria-pressed="false" aria-label="' + lfEsc(title) +
+      '" data-lf-chart-week="' + indexes[j] + '" data-lf-chart-status="' + key + '" style="cursor:pointer">' +
+      '<title>' + lfEsc(title) + '</title><circle' + marker + ' r="9" fill="transparent"/>' +
+      '<circle class="lf-chart-marker"' + marker + ' r="4" fill="white" stroke="' + color + '" stroke-width="2"/></g>';
+  }).join('')).join('');
   const labels = buckets.map(([label], i) => '<text x="' + x(i) + '" y="162" text-anchor="middle">' + label + '</text>').join('');
   const legend = series.map(([, name, color]) => '<small style="color:' + color + '">━ ' + name + '</small>').join('');
-  const description = buckets.map(([label, counts]) => label + ' : ' +
-    series.map(([key, name]) => name + ' ' + counts[key]).join(', ')).join(' · ');
   return '<div class="lf-legend">' + legend + '</div><div style="overflow-x:auto">' +
-    '<svg role="img" aria-label="' + lfEsc(description) + '" viewBox="0 0 ' + width +
+    '<svg role="group" aria-label="Activité hebdomadaire des expéditions" viewBox="0 0 ' + width +
     ' 174" style="display:block;width:100%;min-width:' + width + 'px;font-size:11px" fill="#53675f">' +
-    grid + lines + labels + '</svg></div>';
+    grid + lines + labels + dots + '</svg></div>' +
+    '<div id="lf-chart-selection" aria-live="polite"><p>Sélectionnez un point pour voir les expéditions.</p></div>';
 }
 function lfTrucks(){let rows=lfPeriod();return lfFleet.map(f=>{let name=f[0],a=rows.filter(r=>name==='Semi-remorque bâchée'?r.truck==='Semi-remorque bâchée':name==='Frigorifique'?r.truck.toLowerCase().includes('frigorifique'):name==='Plateau'?r.truck.toLowerCase().includes('plateau'):name==='Porte-conteneur'?r.truck===name:name.startsWith('ADR')?r.truck.startsWith('ADR'):r.truck===name),used=new Set(a.map(r=>r.plate)).size,util=f[1]?Math.round(used/f[1]*100):0;return '<div class="lf-truck"><div><b>'+name+'</b><strong>'+used+' / '+f[1]+' camions · '+util+' %</strong></div><i><span style="width:'+util+'%"></span></i><small>'+a.length+' expédition(s) · '+a.reduce((n,r)=>n+r.weight,0).toLocaleString('fr-FR')+' t · flotte '+f[1]+' véhicules</small></div>'}).join('')+'<p class="lf-note">Les types sans mission restent à 0 %. Capacités indicatives à vérifier selon la carte grise, le PTAC et la configuration réelle.</p>'}
 function lfAlertHtml(){return lfAlerts.map(a=>'<article class="lf-alert '+a.severity+'"><div><b>'+a.kind+'</b><span>depuis '+a.days+' j · '+(a.severity==='critique'?'Critique':'Moyenne')+'</span></div><a href="#" data-lf-row="'+a.ref+'">'+a.ref+' · '+a.route+'</a><p>'+a.impact+'</p><footer><button data-lf-act="Relancer le transporteur" data-ref="'+a.ref+'">Relancer le transporteur</button><button data-lf-act="Téléverser le document" data-ref="'+a.ref+'">Téléverser le document</button><button data-lf-act="Prévenir le client" data-ref="'+a.ref+'">Prévenir le client</button></footer></article>').join('')}
@@ -151,7 +189,19 @@ function lfDemoDeliveryDetails(row) {
 function lfDrawer(ref){let r=lfR.find(x=>x.ref===ref);if(!r)return;let a=lfAlerts.find(x=>x.ref===ref),s=lfStatus(r);document.querySelector('#lf-drawer').innerHTML='<div class="lf-overlay" data-lf-close></div><aside class="lf-drawer-panel"><button data-lf-close class="lf-x">×</button><small>DOSSIER TRANSPORT</small><h2>'+r.ref+'</h2><b class="lf-status '+s.toLowerCase().replaceAll(' ','-')+'">'+s+'</b><h3>'+lfEsc(r.route)+'</h3><p>'+lfEsc(r.client)+' · '+lfEsc(r.zone)+'</p><div class="lf-details"><span>Transporteur / plaque</span><b>'+lfEsc(r.carrier)+' · '+lfEsc(r.plate)+'</b><span>Camion</span><b>'+lfEsc(r.truck)+'</b><span>Poids / volume / palettes</span><b>'+r.weight+' t · '+r.volume+' m³ · '+r.pallets+'</b><span>Incoterm · ETA</span><b>'+r.incoterm+' · '+lfDate(r.eta)+'</b><span>Prix · coût · marge</span><b>'+lfMoney(r.price)+' · '+lfMoney(r.cost)+' · '+lfMoney(r.price-r.cost)+'</b><span>Marchandise</span><b>'+lfEsc(r.goods)+'</b>'+lfDemoDeliveryDetails(r)+'</div><h3>Étapes et documents</h3><p>Demande → transporteur attribué → chargement → passage frontière → livraison</p><p>CMR · bon de chargement · '+(r.delivered?'preuve de livraison':'documents transport')+'</p><h3>Alertes et historique</h3><p>'+(a?lfEsc(a.kind)+' · depuis '+a.days+' j':'Aucune alerte active')+'</p><p>Dernière activité : '+lfDate(r.dispatch)+'</p></aside>'}
 function lfAct(a,ref){if(a==='Téléverser le document'){let f=document.createElement('input');f.type='file';f.accept='.pdf,.jpg,.jpeg,.png';f.onchange=()=>{if(f.files.length)toast(f.files[0].name+' sélectionné · démonstration sans transfert serveur')};f.click()}else toast(a+' · action enregistrée dans la démonstration · '+ref)}
 function lfCreate(a){if(a==='Nouvelle expédition'||a==='Nouvel appel d’offres'){createFor(a);return}modal(a,'<div class="form-grid"><div class="field"><label>Client</label><input placeholder="Nom du chargeur"></div><div class="field"><label>Trajet</label><input placeholder="Départ → destination"></div><div class="field"><label>Marchandise</label><input placeholder="Nature et contraintes"></div><div class="field"><label>Poids / volume</label><input placeholder="tonnes / m³"></div></div>','Enregistrer la demande')}
-function lfBind(){document.addEventListener('click',e=>{let q=e.target.closest('[data-lf-quick]');if(q){lfFilters.status=lfFilters.status===q.dataset.lfQuick?'':q.dataset.lfQuick;lfFilters.page=1;document.querySelector('#lf-table-root').innerHTML=lfTable();return}let s=e.target.closest('[data-lf-sort]');if(s){let k=s.dataset.lfSort;if(lfFilters.sort===k)lfFilters.direction*=-1;else{lfFilters.sort=k;lfFilters.direction=1}document.querySelector('#lf-table-root').innerHTML=lfTable();return}let p=e.target.closest('[data-lf-pg]');if(p){lfFilters.page=+p.dataset.lfPg;document.querySelector('#lf-table-root').innerHTML=lfTable();return}let a=e.target.closest('[data-lf-act]');if(a){lfAct(a.dataset.lfAct,a.dataset.ref);return}let c=e.target.closest('[data-lf-create]');if(c){lfCreate(c.dataset.lfCreate);return}let r=e.target.closest('[data-lf-row]');if(r){e.preventDefault();lfDrawer(r.dataset.lfRow);return}if(e.target.closest('[data-lf-close]')){document.querySelector('#lf-drawer').innerHTML=''}},true);document.addEventListener('input',e=>{if(e.target.id==='lf-search'){lfFilters.search=e.target.value.toLowerCase();lfFilters.page=1;document.querySelector('#lf-table-root').innerHTML=lfTable()}});document.addEventListener('change',e=>{let m={'lf-status':'status','lf-client':'client','lf-carrier':'carrier','lf-zone':'zone'};if(m[e.target.id]){lfFilters[m[e.target.id]]=e.target.value;lfFilters.page=1;document.querySelector('#lf-table-root').innerHTML=lfTable()}if(e.target.id==='dashboardStart'||e.target.id==='dashboardEnd'){let a=e.target.id==='dashboardStart'?e.target.value:dashboardStart,b=e.target.id==='dashboardEnd'?e.target.value:dashboardEnd;if(a&&b&&a>b){toast('La date de début doit précéder la date de fin');return}dashboardStart=a||dashboardStart;dashboardEnd=b||dashboardEnd;render()}});document.addEventListener('keydown',e=>{if(e.target.matches('[data-lf-row]')&&(e.key==='Enter'||e.key===' ')){e.preventDefault();lfDrawer(e.target.dataset.lfRow)}})}
+function lfBind(){
+  document.addEventListener('click', event => {
+    const point = event.target.closest('[data-lf-chart-week]');
+    if (point) lfShowChartPoint(point);
+  });
+  document.addEventListener('keydown', event => {
+    const point = event.target.closest('[data-lf-chart-week]');
+    if (point && (event.key === 'Enter' || event.key === ' ')) {
+      event.preventDefault();
+      lfShowChartPoint(point);
+    }
+  });
+document.addEventListener('click',e=>{let q=e.target.closest('[data-lf-quick]');if(q){lfFilters.status=lfFilters.status===q.dataset.lfQuick?'':q.dataset.lfQuick;lfFilters.page=1;document.querySelector('#lf-table-root').innerHTML=lfTable();return}let s=e.target.closest('[data-lf-sort]');if(s){let k=s.dataset.lfSort;if(lfFilters.sort===k)lfFilters.direction*=-1;else{lfFilters.sort=k;lfFilters.direction=1}document.querySelector('#lf-table-root').innerHTML=lfTable();return}let p=e.target.closest('[data-lf-pg]');if(p){lfFilters.page=+p.dataset.lfPg;document.querySelector('#lf-table-root').innerHTML=lfTable();return}let a=e.target.closest('[data-lf-act]');if(a){lfAct(a.dataset.lfAct,a.dataset.ref);return}let c=e.target.closest('[data-lf-create]');if(c){lfCreate(c.dataset.lfCreate);return}let r=e.target.closest('[data-lf-row]');if(r){e.preventDefault();lfDrawer(r.dataset.lfRow);return}if(e.target.closest('[data-lf-close]')){document.querySelector('#lf-drawer').innerHTML=''}},true);document.addEventListener('input',e=>{if(e.target.id==='lf-search'){lfFilters.search=e.target.value.toLowerCase();lfFilters.page=1;document.querySelector('#lf-table-root').innerHTML=lfTable()}});document.addEventListener('change',e=>{let m={'lf-status':'status','lf-client':'client','lf-carrier':'carrier','lf-zone':'zone'};if(m[e.target.id]){lfFilters[m[e.target.id]]=e.target.value;lfFilters.page=1;document.querySelector('#lf-table-root').innerHTML=lfTable()}if(e.target.id==='dashboardStart'||e.target.id==='dashboardEnd'){let a=e.target.id==='dashboardStart'?e.target.value:dashboardStart,b=e.target.id==='dashboardEnd'?e.target.value:dashboardEnd;if(a&&b&&a>b){toast('La date de début doit précéder la date de fin');return}dashboardStart=a||dashboardStart;dashboardEnd=b||dashboardEnd;render()}});document.addEventListener('keydown',e=>{if(e.target.matches('[data-lf-row]')&&(e.key==='Enter'||e.key===' ')){e.preventDefault();lfDrawer(e.target.dataset.lfRow)}})}
 const lfTracking=trackingPage;trackingPage=function(){let h=lfTracking();let europe=lfR.filter(r=>r.zone==='Europe').length,africa=lfR.filter(r=>r.zone==='Afrique subsaharienne').length,national=lfR.filter(r=>r.zone==='National').length;return h.replace('3 Europe · 2 Afrique · 1 locale',europe+' Europe · '+africa+' Afrique · '+national+' nationales')};
 lfBind();
 shipments.splice(0,shipments.length,...lfR.map(r=>[r.ref,r.route,r.client,r.carrier,lfDate(r.eta),r.status,r.dispatch,r.zone,r.truck,r.pallets+' palettes · '+r.weight+' t · '+r.volume+' m³ · '+r.goods]));
