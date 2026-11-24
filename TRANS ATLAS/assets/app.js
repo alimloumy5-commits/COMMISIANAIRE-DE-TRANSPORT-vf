@@ -11,18 +11,18 @@ const shipments=[
 ];
 const demoShipmentCount=shipments.length;
 const offers=[
-  ["AO-2026-126","Fresh Export","Agadir → Rotterdam","Fruits et légumes frais","72 000 MAD","10 nov. 2026 · 06:00","Côture proche",4500],
-  ["AO-2026-128","Atlas Industries","Tanger → Lyon","Pièces industrielles","44 500 MAD","10 nov. 2026 · 08:00","Côture proche",4500],
+  ["AO-2026-126","Fresh Export","Agadir → Anvers","Fruits et légumes frais","72 000 MAD","10 nov. 2026 · 06:00","Côture proche",4500],
+  ["AO-2026-128","Atlas Industries","Tanger → Toulouse","Pièces industrielles","44 500 MAD","10 nov. 2026 · 08:00","Côture proche",4500],
   ["AO-2026-129","Med Pharma","Tanger → Rabat","Produits pharmaceutiques","4 400  MAD","11 nov. 2026 · 07:00","Ouvert"],
-  ["AO-2026-127","Maroc Distribution","Casablanca → Fès","Produits secs","5 200  MAD","12 nov. 2026 · 09:00","Ouvert"],
+  ["AO-2026-127","Maroc Distribution","Casablanca → Meknès","Produits secs","5 200  MAD","12 nov. 2026 · 09:00","Ouvert"],
   ["AO-2026-125","Agro Maroc","Rabat → Tanger","Produits agroalimentaires","4 600  MAD","12 nov. 2026 · 08:30","Ouvert"],
-  ["AO-2026-130","Textile du Nord","Tanger → Barcelone","Textile conditionné","31 500 MAD","13 nov. 2026 · 08:00","Ouvert",2500],
+  ["AO-2026-130","Textile du Nord","Tanger → Valence (Espagne)","Textile conditionné","31 500 MAD","13 nov. 2026 · 08:00","Ouvert",2500],
   ["AO-2026-131","Fresh Export","Agadir → Casablanca","Agrumes · température contrôlée","6 200  MAD","14 nov. 2026 · 05:30","Ouvert"],
-  ["AO-2026-132","Med Pharma","Tanger → Marrakech","Produits pharmaceutiques · 2–8 °C","7 000 MAD","14 nov. 2026 · 07:00","Ouvert"],
-  ["AO-2026-133","Agro Maroc","Casablanca → Nouakchott","Produits céréaliers · 20 palettes","23 700 MAD","15 nov. 2026 · 08:00","Ouvert",3700],
-  ["AO-2026-134","Maroc Distribution","Casablanca → Bamako","Produits secs · 26 palettes","50 000 MAD","15 nov. 2026 · 06:30","Ouvert",4500],
-  ["AO-2026-135","Atlas Industries","Casablanca → Dakar","Composants automobiles · 18 t","26 900 MAD","16 nov. 2026 · 06:00","Ouvert",2000],
-  ["AO-2026-136","Textile du Nord","Fès → Marrakech","Textile conditionné · 14 palettes","4 900  MAD","16 nov. 2026 · 08:00","Ouvert"]
+  ["AO-2026-132","Med Pharma","Tanger → El Jadida","Produits pharmaceutiques · 2–8 °C","7 000 MAD","14 nov. 2026 · 07:00","Ouvert"],
+  ["AO-2026-133","Agro Maroc","Casablanca → Atar","Produits céréaliers · 20 palettes","23 700 MAD","15 nov. 2026 · 08:00","Ouvert",3700],
+  ["AO-2026-134","Maroc Distribution","Casablanca → Ouagadougou","Produits secs · 26 palettes","50 000 MAD","15 nov. 2026 · 06:30","Ouvert",4500],
+  ["AO-2026-135","Atlas Industries","Casablanca → Saint-Louis (Sénégal)","Composants automobiles · 18 t","26 900 MAD","16 nov. 2026 · 06:00","Ouvert",2000],
+  ["AO-2026-136","Textile du Nord","Fès → Béni Mellal","Textile conditionné · 14 palettes","4 900  MAD","16 nov. 2026 · 08:00","Ouvert"]
 ];
 const baseShipmentCount=shipments.length;function addAssignedShipment(o,bid){let ref='EXP-2026-'+o[0].slice(-3).padStart(4,'0'),index=shipments.findIndex(x=>x[0]===ref);if(index<0){shipments.push([ref,o[2],o[1],bid.carrier,o[5],'En transit']);index=shipments.length-1}return index}Object.entries(assignedOffers).forEach(([code,bid])=>{let o=offers.find(x=>x[0]===code);if(o){o[6]='Attribué';addAssignedShipment(o,bid)}});
 const shippers=[['Atlas Industries','Casablanca','248','Actif'],['Maroc Distribution','Rabat','186','Actif'],['Fresh Export','Agadir','124','Actif'],['Med Pharma','Tanger','97','Actif'],['Sahara Équipements','Marrakech','84','À compléter'],['Agro Maroc','Meknès','71','Actif'],['Textile du Nord','Fès','62','Actif']];
