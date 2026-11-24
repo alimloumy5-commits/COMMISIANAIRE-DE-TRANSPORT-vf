@@ -17,3 +17,12 @@
 #lf-table-root .lf-table tbody tr:is(:hover, :focus) td:last-child:not([colspan]) {
   background: #f3f8f4;
 }
+
+#sidebar {
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
+
+#sidebar > * {
+  flex-shrink: 0;
+}
