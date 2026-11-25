@@ -289,47 +289,55 @@ function lfOtif() {
 }
 
 function lfShipmentTimelines(rows) {
-  const showTransfer = rows.some(row => row.transshipmentAt || ['Escale', 'Transbordement'].includes(row.status));
-  const headings = ['ETD', 'Départ confirmé', 'En transit'];
-  if (showTransfer) headings.push('Escale / transbordement');
-  headings.push('En douane', 'ETA');
+  if (!rows.length) {
+    return '<section class="lf-card lf-shipment-timelines"><h2>Frise des expéditions</h2><p>Aucune expédition sur cette période.</p></section>';
+  }
 
-  const body = rows.map(row => {
-    const status = row.delivered ? 'Livrée' : row.status;
-    const transferring = ['Escale', 'Transbordement'].includes(status);
-    const departed = ['En transit', 'En douane', 'Livrée'].includes(status) || transferring;
-    const steps = [
-      [row.etd || row.dispatch, departed ? 'done' : 'current', 'À confirmer'],
-      [row.actualDeparture, departed ? 'done' : 'pending', departed ? 'Effectué' : 'À venir'],
-      [row.transitAt, status === 'En transit' ? 'current' : departed ? 'done' : 'pending', 'À venir'],
-    ];
-    if (showTransfer) {
-      steps.push([row.transshipmentAt, transferring ? 'current' : row.transshipmentAt ? 'done' : 'skipped', 'Non renseigné']);
-    }
-    steps.push(
-      [row.customsAt, row.zone === 'National' ? 'skipped' : status === 'En douane' ? 'current' :
-        status === 'Livrée' || row.customsAt ? 'done' : 'pending', row.zone === 'National' ? 'Non applicable' : 'À venir'],
-      [row.eta, status === 'Livrée' ? 'done' : 'pending', 'À confirmer'],
-    );
+  const departed = row => row.actualDeparture || row.delivered ||
+    ['En transit', 'En douane', 'Livrée', 'Escale', 'Transbordement'].includes(row.status);
+  const inTransit = row => !row.delivered && row.status === 'En transit';
+  const inCustoms = row => !row.delivered && row.status === 'En douane';
+  const atTransfer = row => !row.delivered && ['Escale', 'Transbordement'].includes(row.status);
+  const steps = [
+    ['ETD', 'Départ estimé', rows, row => row.etd || row.dispatch],
+    ['Départ confirmé', '', rows.filter(departed), row => row.actualDeparture],
+    ['En transit', '', rows.filter(inTransit), row => row.transitAt],
+    ['En douane', '', rows.filter(inCustoms), row => row.customsAt],
+    ['ETA', 'Arrivée estimée', rows, row => row.eta],
+  ];
+  const transfers = rows.filter(row => atTransfer(row) || row.transshipmentAt);
+  if (transfers.length) steps.splice(3, 0, ['Escale / transbordement', '', transfers, row => row.transshipmentAt]);
 
-    return '<tr><th scope="row"><button type="button" class="text-button" data-lf-row="' + lfEsc(row.ref) + '">' +
-      lfEsc(row.ref) + '</button><small>' + lfEsc(row.route) + ' · ' + lfEsc(lfStatus(row)) + '</small></th>' +
-      steps.map(([date, state, fallback]) => {
-        const label = state === 'done' && fallback === 'À venir' ? 'Effectué' :
-          state === 'current' && fallback !== 'À confirmer' ? 'En cours' : fallback;
-        return '<td class="' + state + '"' + (state === 'current' ? ' aria-current="step"' : '') +
-          '><span>' + (date ? '<time datetime="' + lfEsc(date) + '">' + lfDate(date) + '</time>' : label) +
-          '</span></td>';
-      }).join('') + '</tr>';
-  }).join('');
-
-  return '<section class="lf-card lf-shipment-timelines"><h2 id="lf-timeline-title">Frise des expéditions</h2>' +
-    (body ? '<div class="lf-timeline-scroll" tabindex="0"><table aria-labelledby="lf-timeline-title"><thead><tr>' +
-      '<th scope="col">Expédition</th>' + headings.map(label => '<th scope="col">' + label +
-        (label === 'ETD' ? '<small>Départ estimé</small>' : label === 'ETA' ? '<small>Arrivée estimée</small>' : '') +
-        '</th>').join('') + '</tr></thead><tbody>' + body + '</tbody></table></div>' :
-      '<p>Aucune expédition sur cette période.</p>') + '</section>';
+  const points = steps.map(([label, description, shipments], index) =>
+    '<li><button type="button" data-lf-milestone="' + index + '" aria-pressed="' + (index === 0) +
+    '" aria-controls="lf-milestone-' + index + '"><span class="lf-milestone-dot" aria-hidden="true"></span><b>' +
+    label + '</b><small>' + (description ? description + ' · ' : '') + shipments.length + '</small></button></li>'
+  ).join('');
+  const panels = steps.map(([label, description, shipments, dateFor], index) =>
+    '<div class="lf-milestone-panel" id="lf-milestone-' + index + '"' + (index ? ' hidden' : '') +
+    '><h3>' + (description || label) + '</h3>' + (shipments.length ? '<ul>' + shipments.map(row => {
+      const date = dateFor(row);
+      return '<li><div><button type="button" class="text-button" data-lf-row="' + lfEsc(row.ref) +
+        '">' + lfEsc(row.ref) + '</button><small>' + lfEsc(row.route) + ' · ' + lfEsc(lfStatus(row)) +
+        '</small></div>' + (date ? '<time datetime="' + lfEsc(date) + '">' + lfDate(date) + '</time>' :
+          '<small>' + (description ? 'À confirmer' : 'Date non renseignée') + '</small>') + '</li>';
+    }).join('') + '</ul>' : '<p>Aucune expédition à cette étape.</p>') + '</div>'
+  ).join('');
+  return '<section class="lf-card lf-shipment-timelines"><h2>Frise des expéditions</h2>' +
+    '<ol class="lf-milestones" aria-label="Étapes du suivi">' + points + '</ol>' +
+    '<div aria-live="polite">' + panels + '</div></section>';
 }
+
+document.addEventListener('click', event => {
+  const point = event.target.closest('[data-lf-milestone]');
+  if (!point || point.getAttribute('aria-pressed') === 'true') return;
+  const timeline = point.closest('.lf-shipment-timelines');
+  const previous = timeline.querySelector('[aria-pressed="true"]');
+  previous.setAttribute('aria-pressed', 'false');
+  timeline.querySelector('#' + previous.getAttribute('aria-controls')).hidden = true;
+  point.setAttribute('aria-pressed', 'true');
+  timeline.querySelector('#' + point.getAttribute('aria-controls')).hidden = false;
+});
 
 function dashboard(){let rows=lfPeriod(),done=rows.filter(r=>lfStatus(r)==='Livrée'),otif=lfOtif(),margin=rows.reduce((n,r)=>n+r.price-r.cost,0),unpaid=invoices.filter(i=>['À payer','En retard','Partielle'].includes(i[4])).reduce((n,i)=>n+({'FAC-2026-098':12000,'FAC-2026-097':18200,'FAC-2026-096':12800,'FAC-2026-095':9400,'FAC-2026-094':20400}[i[0]]||0),0),active=rows.map(lfStatus).filter(s=>['En transit','Chargement','En douane'].includes(s)).length,open=offers.filter(o=>o[6]==='Ouvert'||o[6]==='Côture proche').length;
 return lfTitle()+'<div class="lf-period"><label>Du <input id="dashboardStart" type="date" value="'+dashboardStart+'"></label><label>Au <input id="dashboardEnd" type="date" value="'+dashboardEnd+'"></label><span>'+rows.length+' expéditions · '+lfDate(dashboardStart)+' — '+lfDate(dashboardEnd)+'</span></div><div class="lf-kpis">'+lfKpi('Nombre d’expéditions',rows.length,'')+lfKpi('En cours',active,'')+lfKpi('En retard',rows.filter(row=>lfStatus(row)==='En retard').length,'Missions ouvertes dont la date promise est dépassée','late')+lfKpi('OTIF',otif.label,otif.met+'/'+otif.due+' livraisons dues, à l’heure et complètes','otif')+lfKpi('Marge brute',lfMoney(margin),'Prix client − coût transporteur')+lfKpi('Appels d’offres sans réponse',open,'Dossiers ouverts')+lfKpi('Factures impayées',lfMoney(unpaid),'DSO : 32 jours')+lfOperationalKpis(rows,done)+'</div><div class="lf-grid"><section class="lf-card"><h2>Activité des expéditions</h2><p>Volumes hebdomadaires selon le statut · période sélectionnée</p>'+(rows.length?lfChart():'Aucune expédition pour cette période.')+'</section><section class="lf-card"><h2>Types de camions utilisés</h2><p>Taux d’utilisation, nombre de missions et tonnage</p>'+lfTrucks()+'</section></div>'+lfShipmentTimelines(rows)+'<section class="lf-card"><h2>Alertes et risques</h2><div id="lf-alert-content" aria-live="polite">'+lfAlertHtml()+'</div></section><div id="lf-drawer"></div>'}

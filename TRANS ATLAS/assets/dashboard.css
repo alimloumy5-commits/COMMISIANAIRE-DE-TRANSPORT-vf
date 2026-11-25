@@ -68,16 +68,14 @@ button.lf-kpi:is(:hover, :focus-visible) {
 }
 
 .lf-shipment-timelines { margin-block: 16px; }
-.lf-timeline-scroll { overflow-x: auto; margin-top: 12px; }
-.lf-timeline-scroll table { width: 100%; min-width: 740px; border-collapse: collapse; }
-.lf-timeline-scroll :is(th, td) { padding: 10px 12px; text-align: left; }
-.lf-timeline-scroll thead th { background: #edf4ee; color: #176b4f; }
-.lf-timeline-scroll th small { display: block; margin-top: 4px; font-weight: normal; }
-.lf-timeline-scroll tbody th { min-width: 190px; }
-.lf-timeline-scroll tbody :is(th, td) { border-bottom: 1px solid #dfe8e1; }
-.lf-timeline-scroll td span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
-.lf-timeline-scroll td span::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #849a8e; }
-.lf-timeline-scroll td.done span::before { background: #16845e; }
-.lf-timeline-scroll td.current { background: #e9f3ff; color: #1558a0; font-weight: 700; }
-.lf-timeline-scroll td.current span::before { background: #2671b5; }
-.lf-timeline-scroll td.skipped span::before { display: none; }
+.lf-milestones { display: flex; list-style: none; overflow-x: auto; margin: 12px 0 16px; padding: 0 0 6px; }
+.lf-milestones li { position: relative; flex: 1 0 112px; text-align: center; }
+.lf-milestones li:not(:last-child)::before { content: ""; position: absolute; top: 16px; left: 50%; width: 100%; height: 2px; background: #cedbd3; }
+.lf-milestones button { position: relative; display: grid; justify-items: center; gap: 4px; width: 100%; padding: 7px 4px; border: 0; background: transparent; color: #285044; font: inherit; cursor: pointer; }
+.lf-milestones button:focus-visible { outline: 2px solid #16845e; outline-offset: -2px; }
+.lf-milestone-dot { box-sizing: border-box; width: 20px; height: 20px; border: 2px solid #16845e; border-radius: 50%; background: #fff; }
+.lf-milestones button:is(:hover, [aria-pressed="true"]) .lf-milestone-dot { background: #16845e; box-shadow: inset 0 0 0 3px #fff; }
+.lf-milestone-panel { border-top: 1px solid #dfe8e1; padding-top: 12px; }
+.lf-milestone-panel ul { list-style: none; padding: 0; margin: 0; }
+.lf-milestone-panel li { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px 16px; padding: 8px 0; border-bottom: 1px solid #edf4ee; }
+.lf-milestone-panel li div small { display: block; }
