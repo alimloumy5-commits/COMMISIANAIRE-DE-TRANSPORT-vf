@@ -66,3 +66,44 @@ button.lf-kpi:is(:hover, :focus-visible) {
   opacity: .4;
   cursor: default;
 }
+
+.lf-shipment-timelines { margin-block: 16px; }
+.lf-shipment-timeline { padding: 14px 0; }
+.lf-shipment-timeline + .lf-shipment-timeline { border-top: 1px solid #dfe8e1; }
+.lf-shipment-timeline-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.lf-shipment-timeline ol { display: flex; list-style: none; margin: 12px 0 0; padding: 0 0 4px; overflow-x: auto; }
+.lf-shipment-timeline li {
+  display: grid;
+  align-content: start;
+  gap: 3px;
+  position: relative;
+  flex: 1 0 112px;
+  padding: 19px 8px 0 0;
+  font-size: 13px;
+  color: #456054;
+}
+.lf-shipment-timeline li::before {
+  content: "";
+  position: absolute;
+  inset: 6px 0 auto;
+  height: 2px;
+  background: #cedbd3;
+}
+.lf-shipment-timeline li:last-child::before { display: none; }
+.lf-shipment-timeline li::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 0;
+  width: 10px;
+  height: 10px;
+  border: 2px solid #849a8e;
+  border-radius: 50%;
+  background: #fff;
+  box-sizing: border-box;
+}
+.lf-shipment-timeline li.done::after { background: #16845e; border-color: #16845e; }
+.lf-shipment-timeline li.current { color: #1558a0; }
+.lf-shipment-timeline li.current::after { background: #2671b5; border-color: #2671b5; outline: 2px solid #cce3f9; }
+.lf-shipment-timeline li.skipped::after { border-style: dashed; }
+.lf-shipment-timeline li small { font-size: 12px; }
