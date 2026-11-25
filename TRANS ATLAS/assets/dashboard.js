@@ -72,7 +72,12 @@ function lfStatus(r){if(r.delivered)return 'Livrée';return r.eta&&r.eta<lfDemoD
 function lfMoney(n){return new Intl.NumberFormat('fr-FR',{maximumFractionDigits:0}).format(n)+' MAD'}
 function lfEsc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function lfDate(s){if(!s)return '—';return new Intl.DateTimeFormat('fr-FR',{day:'2-digit',month:'short',year:'numeric',timeZone:'Africa/Casablanca'}).format(new Date(s+'T12:00:00'))}
-function lfPeriod(){return lfR.filter(r=>r.dispatch>=dashboardStart&&r.dispatch<=dashboardEnd)}
+function lfPeriod() {
+  return lfR.filter(row =>
+    row.dispatch >= dashboardStart && row.dispatch <= dashboardEnd &&
+    !(page === 'dashboard' && row.ref === 'EXP-2026-0126' && row.status === 'Planifiée')
+  );
+}
 const lfFleet=[['Semi-remorque bâchée',32],['Tautliner',18],['Frigorifique',20],['Citerne',8],['Plateau',12],['Porte-conteneur',14],['ADR (matières dangereuses)',6]];
 const lfAlerts=[
 {kind:'Excursion de température',severity:'critique',days:0,action:'Demander le relevé de température',ref:'EXP-2026-0843',impact:'Risque qualité · Agro Maroc',route:'Agadir → Rotterdam'},
