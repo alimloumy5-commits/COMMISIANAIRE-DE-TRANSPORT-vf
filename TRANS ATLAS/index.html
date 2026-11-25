@@ -5,7 +5,7 @@
   <meta name="theme-color" content="#f6f8f5"><title>LOGIFLOW — Transport Management</title>
   <link rel="stylesheet" href="/assets/style.css?v=20261119-2">
   <link rel="stylesheet" href="/assets/theme.css?v=20261120-1">
-  <link rel="stylesheet" href="/assets/dashboard.css?v=20261125-attribution-kpi">
+  <link rel="stylesheet" href="/assets/dashboard.css?v=20261125-navigation">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
 </head>
 <body>
@@ -17,7 +17,7 @@
     <div class="side-bottom"><button data-page="settings">⚙　Paramètres</button><button data-page="help">ⓘ　Centre d’aide</button><small>LOGIFLOW © 2026</small></div>
   </aside>
   <main class="shell">
-    <header class="topbar"><button class="menu" id="menu">☰</button><span class="top-context" id="context">Espace commissionnaire</span>
+    <header class="topbar"><button class="menu" id="menu">☰</button><div class="navigation-arrows" role="group" aria-label="Historique de navigation"><button type="button" id="navigation-back" title="Précédent" aria-label="Précédent" disabled>←</button><button type="button" id="navigation-forward" title="Suivant" aria-label="Suivant" disabled>→</button></div><span class="top-context" id="context">Espace commissionnaire</span>
       <label class="global-search"><span>⌕</span><input id="globalSearch" placeholder="Rechercher une expédition, un client…"><kbd>⌘ K</kbd></label>
       <button class="icon-button" id="notifications" title="Notifications" aria-label="Notifications"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><i></i></button><div class="user" id="user"><b>Amine Benali</b><small>Administrateur</small></div><button class="caret" id="userMenu">⌄</button>
     </header>
@@ -26,6 +26,6 @@
   <div id="modalRoot"></div>
   <div id="toast" class="toast"></div>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-  <script src="/assets/app.js?v=20261125-attribution-kpi"></script>
+  <script src="/assets/app.js?v=20261125-navigation"></script>
   <script src="/assets/dashboard.js?v=20261125-attribution-kpi"></script>
 </body></html>

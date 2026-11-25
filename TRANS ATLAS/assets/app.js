@@ -126,7 +126,54 @@ function initShipmentMap(){
  setTimeout(()=>map.invalidateSize(),150)
 }
 function makeMobileNav(){let old=document.querySelector('.mobile-bottom');if(old)old.remove();let m=document.createElement('div');m.className='mobile-bottom';[['dashboard','Accueil'],['tracking','Suivi'],['documents','Documents'],['settings','Réglages']].forEach(([p,n])=>{let b=document.createElement('button');b.className=page===p?'active':'';b.innerHTML=`<span>${icon[p]}</span>${n}`;b.onclick=()=>go(p);m.append(b)});document.body.append(m)}
-function go(p){page=p;query='';activeTab='';render();document.querySelector('#sidebar').classList.remove('open');window.scrollTo(0,0)}
+const navigationHistory = [];
+let navigationIndex = 0;
+
+function navigationState() {
+  return { page, query, activeTab, selectedShip, selectedOfferCode, selectedBidIndex, selectedBill, activeDocType };
+}
+
+function updateNavigationArrows() {
+  document.querySelector('#navigation-back').disabled = navigationIndex === 0;
+  document.querySelector('#navigation-forward').disabled = navigationIndex >= navigationHistory.length - 1;
+}
+
+function showNavigationPage() {
+  render();
+  document.querySelector('#sidebar').classList.remove('open');
+  window.scrollTo(0, 0);
+  updateNavigationArrows();
+}
+
+function go(p) {
+  const leaving = navigationState();
+  const destination = navigationHistory[navigationIndex];
+  if (destination?.page === 'assignment' && p === 'assignment' && destination.selectedOfferCode !== selectedOfferCode) {
+    leaving.selectedOfferCode = destination.selectedOfferCode;
+    leaving.selectedBidIndex = destination.selectedBidIndex;
+  }
+  navigationHistory[navigationIndex] = leaving;
+  page = p;
+  query = '';
+  activeTab = '';
+  if (p !== leaving.page || leaving.selectedOfferCode !== selectedOfferCode) {
+    navigationHistory.splice(navigationIndex + 1, navigationHistory.length, navigationState());
+    navigationIndex++;
+  }
+  showNavigationPage();
+}
+
+function stepNavigation(offset) {
+  const next = navigationHistory[navigationIndex + offset];
+  if (!next) return;
+  navigationHistory[navigationIndex] = navigationState();
+  navigationIndex += offset;
+  ({ page, query, activeTab, selectedShip, selectedOfferCode, selectedBidIndex, selectedBill, activeDocType } = next);
+  showNavigationPage();
+}
+
+document.querySelector('#navigation-back').addEventListener('click', () => stepNavigation(-1));
+document.querySelector('#navigation-forward').addEventListener('click', () => stepNavigation(1));
 function toast(s){let el=document.querySelector('#toast');el.textContent=s;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2600)}
 function cleanDemoCopy(value){return value.replace(/Données de démonstration/gi,'').replace(/Dossier de démonstration/gi,'Dossier LOGIFLOW').replace(/Document de démonstration · Les données présentées sont fictives et doivent être vérifiées avant tout usage commercial ou réglementaire\./gi,'Copie de consultation · Vérifier les signatures et pièces jointes sur le dossier opérationnel.').replace(/Document de démonstration · données fictives/gi,'Pièce rattachée au dossier transport.').replace(/DOCUMENT DE TRANSPORT · LOGIFLOW/gi,'DOCUMENT DE TRANSPORT · LOGIFLOW').replace(/données fictives/gi,'données du dossier').replace(/ajouté à la démonstration/gi,'ajouté au dossier').replace(/ — démonstration/gi,'').replace(/enregistrée dans cette démonstration/gi,'enregistrée');}
 function modal(title,body,submit='Enregistrer'){let root=document.querySelector('#modalRoot');body=cleanDemoCopy(body);root.innerHTML=`<div class="modal-backdrop"><div class="modal"><div class="modal-header"><h2>${title}</h2><button class="close" data-close>×</button></div><div class="modal-body">${body}</div><div class="modal-actions"><button class="secondary" data-close>Annuler</button><button class="primary" data-submit>${submit}</button></div></div></div>`;root.querySelector('.modal-backdrop').onclick=e=>{if(e.target.classList.contains('modal-backdrop'))root.innerHTML=''};root.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>root.innerHTML='');root.querySelector('[data-submit]').onclick=()=>{root.innerHTML='';if(submit==='Ouvrir le suivi'){go('tracking');return}if(submit==='Attribuer la mission'){go('assignment');return}if(submit==='Choisir un fichier'){let input=document.createElement('input');input.type='file';input.accept='.pdf,.jpg,.jpeg,.png';input.onchange=()=>input.files.length&&toast(`${input.files[0].name} ajouté au dossier`);input.click();return}toast(`${title} enregistré(e)`);};}
