@@ -289,36 +289,46 @@ function lfOtif() {
 }
 
 function lfShipmentTimelines(rows) {
-  const content = rows.map(row => {
+  const showTransfer = rows.some(row => row.transshipmentAt || ['Escale', 'Transbordement'].includes(row.status));
+  const headings = ['ETD', 'Départ confirmé', 'En transit'];
+  if (showTransfer) headings.push('Escale / transbordement');
+  headings.push('En douane', 'ETA');
+
+  const body = rows.map(row => {
     const status = row.delivered ? 'Livrée' : row.status;
-    const departed = ['En transit', 'En douane', 'Livrée', 'Escale', 'Transbordement'].includes(status);
-    const customsApplies = row.zone !== 'National';
+    const transferring = ['Escale', 'Transbordement'].includes(status);
+    const departed = ['En transit', 'En douane', 'Livrée'].includes(status) || transferring;
     const steps = [
-      ['ETD', 'Départ estimé', row.etd || row.dispatch, departed ? 'done' : 'current'],
-      ['Départ confirmé', departed ? 'Effectué' : 'À venir', row.actualDeparture, departed ? 'done' : 'pending'],
-      ['En transit', '', row.transitAt, status === 'En transit' && !row.customsAt ? 'current' : departed ? 'done' : 'pending'],
+      [row.etd || row.dispatch, departed ? 'done' : 'current', 'À confirmer'],
+      [row.actualDeparture, departed ? 'done' : 'pending', departed ? 'Effectué' : 'À venir'],
+      [row.transitAt, status === 'En transit' ? 'current' : departed ? 'done' : 'pending', 'À venir'],
     ];
-    if (row.transshipmentAt || status === 'Escale' || status === 'Transbordement') {
-      steps.push(['Escale / transbordement', '', row.transshipmentAt,
-        ['Escale', 'Transbordement'].includes(status) ? 'current' : 'done']);
+    if (showTransfer) {
+      steps.push([row.transshipmentAt, transferring ? 'current' : row.transshipmentAt ? 'done' : 'skipped', 'Non renseigné']);
     }
     steps.push(
-      ['En douane', customsApplies ? '' : 'Non applicable', row.customsAt,
-        !customsApplies ? 'skipped' : status === 'En douane' ? 'current' : status === 'Livrée' || row.customsAt ? 'done' : 'pending'],
-      ['ETA', 'Arrivée estimée', row.eta, status === 'Livrée' ? 'done' : 'pending'],
+      [row.customsAt, row.zone === 'National' ? 'skipped' : status === 'En douane' ? 'current' :
+        status === 'Livrée' || row.customsAt ? 'done' : 'pending', row.zone === 'National' ? 'Non applicable' : 'À venir'],
+      [row.eta, status === 'Livrée' ? 'done' : 'pending', 'À confirmer'],
     );
-    return '<article class="lf-shipment-timeline"><div class="lf-shipment-timeline-head">' +
-      '<button type="button" class="text-button" data-lf-row="' + lfEsc(row.ref) + '">' +
-      lfEsc(row.ref) + '</button><span>' + lfEsc(row.route) + '</span>' + '<span class="lf-status ' + lfStatus(row).toLowerCase().replaceAll(' ', '-') + '">' + lfEsc(lfStatus(row)) + '</span>' +
-      '</div><ol aria-label="Jalons de ' + lfEsc(row.ref) + '">' + steps.map(([label, detail, date, state]) =>
-        '<li class="' + state + '"' + (state === 'current' ? ' aria-current="step"' : '') +
-        '><b>' + label + '</b>' + (detail ? '<small>' + detail + '</small>' : '') +
-        (date ? '<time datetime="' + lfEsc(date) + '">' + lfDate(date) + '</time>' :
-          label === 'ETD' || label === 'ETA' ? '<small>À confirmer</small>' : '') + '</li>'
-      ).join('') + '</ol></article>';
+
+    return '<tr><th scope="row"><button type="button" class="text-button" data-lf-row="' + lfEsc(row.ref) + '">' +
+      lfEsc(row.ref) + '</button><small>' + lfEsc(row.route) + ' · ' + lfEsc(lfStatus(row)) + '</small></th>' +
+      steps.map(([date, state, fallback]) => {
+        const label = state === 'done' && fallback === 'À venir' ? 'Effectué' :
+          state === 'current' && fallback !== 'À confirmer' ? 'En cours' : fallback;
+        return '<td class="' + state + '"' + (state === 'current' ? ' aria-current="step"' : '') +
+          '><span>' + (date ? '<time datetime="' + lfEsc(date) + '">' + lfDate(date) + '</time>' : label) +
+          '</span></td>';
+      }).join('') + '</tr>';
   }).join('');
-  return '<section class="lf-card lf-shipment-timelines"><h2>Suivi des expéditions</h2>' +
-    (content || '<p>Aucune expédition sur cette période.</p>') + '</section>';
+
+  return '<section class="lf-card lf-shipment-timelines"><h2 id="lf-timeline-title">Frise des expéditions</h2>' +
+    (body ? '<div class="lf-timeline-scroll" tabindex="0"><table aria-labelledby="lf-timeline-title"><thead><tr>' +
+      '<th scope="col">Expédition</th>' + headings.map(label => '<th scope="col">' + label +
+        (label === 'ETD' ? '<small>Départ estimé</small>' : label === 'ETA' ? '<small>Arrivée estimée</small>' : '') +
+        '</th>').join('') + '</tr></thead><tbody>' + body + '</tbody></table></div>' :
+      '<p>Aucune expédition sur cette période.</p>') + '</section>';
 }
 
 function dashboard(){let rows=lfPeriod(),done=rows.filter(r=>lfStatus(r)==='Livrée'),otif=lfOtif(),margin=rows.reduce((n,r)=>n+r.price-r.cost,0),unpaid=invoices.filter(i=>['À payer','En retard','Partielle'].includes(i[4])).reduce((n,i)=>n+({'FAC-2026-098':12000,'FAC-2026-097':18200,'FAC-2026-096':12800,'FAC-2026-095':9400,'FAC-2026-094':20400}[i[0]]||0),0),active=rows.map(lfStatus).filter(s=>['En transit','Chargement','En douane'].includes(s)).length,open=offers.filter(o=>o[6]==='Ouvert'||o[6]==='Côture proche').length;
