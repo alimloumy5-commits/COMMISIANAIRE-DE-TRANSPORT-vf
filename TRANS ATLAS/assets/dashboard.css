@@ -26,3 +26,16 @@
 #sidebar > * {
   flex-shrink: 0;
 }
+
+
+button.lf-kpi {
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+button.lf-kpi:is(:hover, :focus-visible) {
+  outline: 2px solid #16845e;
+  outline-offset: 2px;
+}
