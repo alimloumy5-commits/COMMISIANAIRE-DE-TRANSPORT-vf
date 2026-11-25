@@ -75,7 +75,7 @@ function lfDate(s){if(!s)return '—';return new Intl.DateTimeFormat('fr-FR',{da
 function lfPeriod() {
   return lfR.filter(row =>
     row.dispatch >= dashboardStart && row.dispatch <= dashboardEnd &&
-    !(page === 'dashboard' && row.ref === 'EXP-2026-0126' && row.status === 'Planifiée')
+    !(row.ref === 'EXP-2026-0126' && row.status === 'Planifiée')
   );
 }
 const lfFleet=[['Semi-remorque bâchée',32],['Tautliner',18],['Frigorifique',20],['Citerne',8],['Plateau',12],['Porte-conteneur',14],['ADR (matières dangereuses)',6]];
