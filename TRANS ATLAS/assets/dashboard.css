@@ -74,8 +74,13 @@ button.lf-kpi:is(:hover, :focus-visible) {
 .lf-milestones button { position: relative; display: grid; justify-items: center; gap: 4px; width: 100%; padding: 7px 4px; border: 0; background: transparent; color: #285044; font: inherit; cursor: pointer; }
 .lf-milestones button:focus-visible { outline: 2px solid #16845e; outline-offset: -2px; }
 .lf-milestone-dot { box-sizing: border-box; width: 20px; height: 20px; border: 2px solid #16845e; border-radius: 50%; background: #fff; }
-.lf-milestones button:is(:hover, [aria-pressed="true"]) .lf-milestone-dot { background: #16845e; box-shadow: inset 0 0 0 3px #fff; }
-.lf-milestone-panel { border-top: 1px solid #dfe8e1; padding-top: 12px; }
-.lf-milestone-panel ul { list-style: none; padding: 0; margin: 0; }
-.lf-milestone-panel li { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px 16px; padding: 8px 0; border-bottom: 1px solid #edf4ee; }
-.lf-milestone-panel li div small { display: block; }
+.lf-milestones button:is(:hover, :focus-visible) .lf-milestone-dot { background: #16845e; box-shadow: inset 0 0 0 3px #fff; }
+.lf-milestone-details { border-top: 1px solid #dfe8e1; padding-top: 12px; }
+.lf-milestone-details ul { list-style: none; padding: 0; margin: 0; }
+.lf-milestone-details li { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px 16px; padding: 8px 0; border-bottom: 1px solid #edf4ee; }
+.lf-milestone-details li div small { display: block; }
+
+.lf-milestone-dialog { box-sizing: border-box; width: min(640px, calc(100% - 32px)); max-height: 80vh; overflow: auto; border: 1px solid #dfe8e1; border-radius: 16px; padding: 20px; color: #18332d; background: #fff; }
+.lf-milestone-dialog::backdrop { background: rgb(18 41 34 / 48%); }
+.lf-milestone-dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 12px; }
+.lf-milestone-dialog-head h3 { margin: 0; }

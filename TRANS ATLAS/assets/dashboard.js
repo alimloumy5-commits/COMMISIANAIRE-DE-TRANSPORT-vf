@@ -309,34 +309,39 @@ function lfShipmentTimelines(rows) {
   if (transfers.length) steps.splice(3, 0, ['Escale / transbordement', '', transfers, row => row.transshipmentAt]);
 
   const points = steps.map(([label, description, shipments], index) =>
-    '<li><button type="button" data-lf-milestone="' + index + '" aria-pressed="' + (index === 0) +
-    '" aria-controls="lf-milestone-' + index + '"><span class="lf-milestone-dot" aria-hidden="true"></span><b>' +
+    '<li><button type="button" data-lf-milestone="' + index + '" aria-haspopup="dialog"><span class="lf-milestone-dot" aria-hidden="true"></span><b>' +
     label + '</b><small>' + (description ? description + ' · ' : '') + shipments.length + '</small></button></li>'
   ).join('');
   const panels = steps.map(([label, description, shipments, dateFor], index) =>
-    '<div class="lf-milestone-panel" id="lf-milestone-' + index + '"' + (index ? ' hidden' : '') +
-    '><h3>' + (description || label) + '</h3>' + (shipments.length ? '<ul>' + shipments.map(row => {
+    '<template id="lf-milestone-' + index + '" data-title="' + (description || label) + '">' + (shipments.length ? '<ul>' + shipments.map(row => {
       const date = dateFor(row);
       return '<li><div><button type="button" class="text-button" data-lf-row="' + lfEsc(row.ref) +
         '">' + lfEsc(row.ref) + '</button><small>' + lfEsc(row.route) + ' · ' + lfEsc(lfStatus(row)) +
         '</small></div>' + (date ? '<time datetime="' + lfEsc(date) + '">' + lfDate(date) + '</time>' :
           '<small>' + (description ? 'À confirmer' : 'Date non renseignée') + '</small>') + '</li>';
-    }).join('') + '</ul>' : '<p>Aucune expédition à cette étape.</p>') + '</div>'
+    }).join('') + '</ul>' : '<p>Aucune expédition à cette étape.</p>') + '</template>'
   ).join('');
   return '<section class="lf-card lf-shipment-timelines"><h2>Frise des expéditions</h2>' +
     '<ol class="lf-milestones" aria-label="Étapes du suivi">' + points + '</ol>' +
-    '<div aria-live="polite">' + panels + '</div></section>';
+    '<dialog class="lf-milestone-dialog" aria-labelledby="lf-milestone-title">' +
+    '<div class="lf-milestone-dialog-head"><h3 id="lf-milestone-title"></h3>' +
+    '<form method="dialog"><button type="submit" class="secondary">Fermer</button></form></div>' +
+    '<div class="lf-milestone-details"></div></dialog>' + panels + '</section>';
 }
 
 document.addEventListener('click', event => {
   const point = event.target.closest('[data-lf-milestone]');
-  if (!point || point.getAttribute('aria-pressed') === 'true') return;
+  if (!point) return;
   const timeline = point.closest('.lf-shipment-timelines');
-  const previous = timeline.querySelector('[aria-pressed="true"]');
-  previous.setAttribute('aria-pressed', 'false');
-  timeline.querySelector('#' + previous.getAttribute('aria-controls')).hidden = true;
-  point.setAttribute('aria-pressed', 'true');
-  timeline.querySelector('#' + point.getAttribute('aria-controls')).hidden = false;
+  const dialog = timeline.querySelector('dialog');
+  const template = timeline.querySelector('#lf-milestone-' + point.dataset.lfMilestone);
+  dialog.querySelector('h3').textContent = template.dataset.title;
+  const details = dialog.querySelector('.lf-milestone-details');
+  details.replaceChildren(template.content.cloneNode(true));
+  details.onclick = event => {
+    if (event.target.closest('[data-lf-row]')) dialog.close();
+  };
+  dialog.showModal();
 });
 
 function dashboard(){let rows=lfPeriod(),done=rows.filter(r=>lfStatus(r)==='Livrée'),otif=lfOtif(),margin=rows.reduce((n,r)=>n+r.price-r.cost,0),unpaid=invoices.filter(i=>['À payer','En retard','Partielle'].includes(i[4])).reduce((n,i)=>n+({'FAC-2026-098':12000,'FAC-2026-097':18200,'FAC-2026-096':12800,'FAC-2026-095':9400,'FAC-2026-094':20400}[i[0]]||0),0),active=rows.map(lfStatus).filter(s=>['En transit','Chargement','En douane'].includes(s)).length,open=offers.filter(o=>o[6]==='Ouvert'||o[6]==='Côture proche').length;
