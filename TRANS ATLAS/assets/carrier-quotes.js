@@ -5,13 +5,12 @@ bidsForOffer = function (offer) {
   const saved = assignedOffers[offer[0]];
   const bids = lfOriginalBidsForOffer(offer);
   const assignedIndex = saved ? bids.findIndex(bid => bid.carrier === saved.carrier) : -1;
-  const baseIndex = assignedIndex < 0 ? 0 : assignedIndex;
+  const pricePremiums = [.8, .55, .65, .25, 0];
   const usedPrices = new Set(saved ? [saved.price] : []);
   return bids.map((bid, index) => {
     if (index === assignedIndex) return saved;
-    const step = (index - baseIndex + bids.length) % bids.length;
-    let adjustment = step * 50;
-    while (usedPrices.has(bid.price + adjustment)) adjustment += 50;
+    let adjustment = Math.round(bid.margin * (pricePremiums[index] ?? 0));
+    while (usedPrices.has(bid.price + adjustment)) adjustment += 1;
     const price = bid.price + adjustment;
     usedPrices.add(price);
     // Scénario de démonstration. Une disponibilité renseignée a priorité.
