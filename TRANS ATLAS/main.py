@@ -2,9 +2,21 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi import HTTPException, Response
+from completed_documents import render
 
 BASE = Path(__file__).parent
 app = FastAPI(title="LOGIFLOW", description="Prototype de gestion transport et logistique")
+
+@app.get("/assets/pieces/{filename}")
+def completed_document(filename: str):
+    try:
+        content = render(filename)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Document introuvable")
+    media = "application/pdf" if filename.endswith(".pdf") else "image/png"
+    return Response(content, media_type=media, headers={"Cache-Control": "public, max-age=86400"})
+
 app.mount("/assets", StaticFiles(directory=BASE / "assets"), name="assets")
 
 @app.get("/api/health")
