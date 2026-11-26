@@ -14,7 +14,10 @@ bidsForOffer = function (offer) {
     while (usedPrices.has(bid.price + adjustment)) adjustment += 50;
     const price = bid.price + adjustment;
     usedPrices.add(price);
-    return { ...bid, price, margin: bid.margin - adjustment };
+    // Scénario de démonstration. Une disponibilité renseignée a priorité.
+    const demoAvailability = [true, true, undefined, undefined, false];
+    const availableAtEtd = bid.availableAtEtd ?? demoAvailability[index];
+    return { ...bid, price, margin: bid.margin - adjustment, availableAtEtd };
   });
 };
 
@@ -52,7 +55,7 @@ function lfTransportQuoteTable(bids, selectedIndex, assigned) {
   }).join('');
   const headings = ['Transporteur', 'Prix proposé', 'Disponibilité à l’ETD', 'Délai', 'Ponctualité'];
   if (!assigned) headings.push('Sélection');
-  return '<div class="table-wrap lf-carrier-quotes"><table aria-label="Comparaison des transporteurs"><thead><tr>' +
+  return '<p><small>Disponibilités à l’ETD simulées pour la démonstration.</small></p><div class="table-wrap lf-carrier-quotes"><table aria-label="Comparaison des transporteurs"><thead><tr>' +
     headings.map(label => '<th scope="col">' + label + '</th>').join('') + '</tr></thead><tbody>' + rows + '</tbody></table></div>';
 }
 
