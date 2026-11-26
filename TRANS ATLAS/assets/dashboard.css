@@ -84,3 +84,9 @@ button.lf-kpi:is(:hover, :focus-visible) {
 .lf-milestone-dialog::backdrop { background: rgb(18 41 34 / 48%); }
 .lf-milestone-dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 12px; }
 .lf-milestone-dialog-head h3 { margin: 0; }
+
+.lf-nav-group > small { text-transform: uppercase; margin-top: 13px; }
+.lf-nav-icon { width: 20px; height: 20px; flex: 0 0 20px; vertical-align: middle; }
+.lf-nav-group button, .side-bottom button { display: flex; align-items: center; gap: 10px; }
+.side-bottom button.active { color: #176b4f; background: #e5f4eb; }
+.mobile-bottom .lf-nav-icon { display: block; margin-inline: auto; }

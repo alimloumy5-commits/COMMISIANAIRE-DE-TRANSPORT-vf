@@ -351,7 +351,60 @@ document.addEventListener('click', event => {
 
 function dashboard(){let rows=lfPeriod(),done=rows.filter(r=>lfStatus(r)==='Livrée'),otif=lfOtif(),margin=rows.reduce((n,r)=>n+r.price-r.cost,0),unpaid=invoices.filter(i=>['À payer','En retard','Partielle'].includes(i[4])).reduce((n,i)=>n+({'FAC-2026-098':12000,'FAC-2026-097':18200,'FAC-2026-096':12800,'FAC-2026-095':9400,'FAC-2026-094':20400}[i[0]]||0),0),active=rows.map(lfStatus).filter(s=>['En transit','Chargement','En douane'].includes(s)).length,open=offers.filter(o=>o[6]==='Ouvert'||o[6]==='Côture proche').length;
 return lfTitle()+'<div class="lf-period"><label>Du <input id="dashboardStart" type="date" value="'+dashboardStart+'"></label><label>Au <input id="dashboardEnd" type="date" value="'+dashboardEnd+'"></label><span>'+rows.length+' expéditions · '+lfDate(dashboardStart)+' — '+lfDate(dashboardEnd)+'</span></div><div class="lf-kpis">'+lfKpi('Nombre d’expéditions',rows.length,'')+lfKpi('En cours',active,'')+lfKpi('En retard',rows.filter(row=>lfStatus(row)==='En retard').length,'Missions ouvertes dont la date promise est dépassée','late')+lfKpi('OTIF',otif.label,otif.met+'/'+otif.due+' livraisons dues, à l’heure et complètes','otif')+lfKpi('Marge brute',lfMoney(margin),'Prix client − coût transporteur')+lfKpi('Appels d’offres sans réponse',open,'Dossiers ouverts')+lfKpi('Factures impayées',lfMoney(unpaid),'DSO : 32 jours')+lfOperationalKpis(rows,done)+'</div><div class="lf-grid"><section class="lf-card"><h2>Activité des expéditions</h2><p>Volumes hebdomadaires selon le statut · période sélectionnée</p>'+(rows.length?lfChart():'Aucune expédition pour cette période.')+'</section><section class="lf-card"><h2>Types de camions utilisés</h2><p>Taux d’utilisation, nombre de missions et tonnage</p>'+lfTrucks()+'</section></div>'+lfShipmentTimelines(rows)+'<section class="lf-card"><h2>Alertes et risques</h2><div id="lf-alert-content" aria-live="polite">'+lfAlertHtml()+'</div></section><div id="lf-drawer"></div>'}
-function lfNav(){let count=disputes.filter(d=>d[4]!=='Résolu').length,ops=[['dashboard','▦','Tableau de bord'],['shipments','⇄','Expéditions'],['offers','◇','Appels d’offres'],['tracking','⌖','Suivi d’expédition'],['documents','▤','Documents'],['billing','▧','Facturation'],['disputes','⚑','Litiges']],mg=[['clients','♙','Clients'],['carriers','▣','Transporteurs'],['tariffs','⌁','Tarifs et grilles'],['reports','▥','Rapports']];document.querySelector('#nav').innerHTML='<div class="lf-nav-group"><small>EXPLOITATION</small>'+ops.map(x=>'<button data-page="'+x[0]+'" class="'+(page===x[0]?'active':'')+'"><span class="nav-icon">'+x[1]+'</span>'+x[2]+(x[0]==='disputes'?'<i>'+count+'</i>':'')+'</button>').join('')+'</div><div class="lf-nav-group"><small>GESTION</small>'+mg.map(x=>'<button data-page="'+x[0]+'" class="'+(page===x[0]?'active':'')+'"><span class="nav-icon">'+x[1]+'</span>'+x[2]+'</button>').join('')+'</div>';document.querySelector('#nav').onclick=e=>{let b=e.target.closest('[data-page]');if(b){e.preventDefault();e.stopPropagation();go(b.dataset.page)}}}
+const lfNavIcons = {
+  dashboard: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+  shipments: '<path d="m3 7 9-4 9 4v10l-9 4-9-4V7Zm0 0 9 4 9-4m-9 4v10M7.5 5l9 4"/>',
+  tracking: '<path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/>',
+  offers: '<rect x="5" y="5" width="14" height="16" rx="2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6m-6 4h6"/>',
+  clients: '<circle cx="9" cy="7" r="3"/><path d="M3 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2m2-15a3 3 0 0 1 0 6m4 9v-2a4 4 0 0 0-3-4"/>',
+  carriers: '<path d="M2 5h12v12H2zm12 5h4l4 4v3h-8"/><circle cx="6" cy="18" r="2" fill="var(--lf-icon-bg, currentColor)"/><circle cx="18" cy="18" r="2" fill="var(--lf-icon-bg, currentColor)"/>',
+  documents: '<path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/>',
+  billing: '<path d="M5 3h14v18l-3-2-4 2-4-2-3 2V3Zm4 5h6m-6 4h6m-6 4h3"/>',
+  disputes: '<path d="M12 3 2 20h20L12 3Zm0 6v4m0 3h.01"/>',
+  settings: '<path d="M4 7h16M4 12h16M4 17h16M8 5v4m8 1v4m-6 1v4"/>',
+  help: '<circle cx="12" cy="12" r="9"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 2-3 4m.1 3h.01"/>'
+};
+
+function lfNavIcon(key) {
+  return '<svg class="lf-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' +
+    lfNavIcons[key] + '</svg>';
+}
+
+function lfNav() {
+  const groups = [
+    ['Pilotage', [['dashboard', 'Tableau de bord']]],
+    ['Exploitation', [['shipments', 'Expéditions'], ['tracking', 'Suivi d’expédition'], ['offers', 'Appels d’offres']]],
+    ['Partenaires', [['clients', 'Clients'], ['carriers', 'Transporteurs']]],
+    ['Administration', [['documents', 'Documents'], ['billing', 'Facturation'], ['disputes', 'Litiges']]],
+  ];
+  const count = disputes.filter(dispute => dispute[4] !== 'Résolu').length;
+  const nav = document.querySelector('#nav');
+  nav.innerHTML = groups.map(([group, entries]) =>
+    '<div class="lf-nav-group"><small>' + group + '</small>' + entries.map(([key, label]) =>
+      '<button type="button" data-page="' + key + '"' + (page === key ? ' class="active" aria-current="page"' : '') +
+      '>' + lfNavIcon(key) + label + (key === 'disputes' && count ? '<i>' + count + '</i>' : '') + '</button>'
+    ).join('') + '</div>'
+  ).join('');
+  nav.onclick = event => {
+    const button = event.target.closest('[data-page]');
+    if (!button) return;
+    event.preventDefault();
+    event.stopPropagation();
+    go(button.dataset.page);
+  };
+
+  document.querySelectorAll('.side-bottom [data-page]').forEach(button => {
+    const key = button.dataset.page;
+    button.innerHTML = lfNavIcon(key) + (key === 'settings' ? 'Paramètres' : 'Centre d’aide');
+    button.classList.toggle('active', page === key);
+    if (page === key) button.setAttribute('aria-current', 'page');
+    else button.removeAttribute('aria-current');
+  });
+  const mobileLinks = ['dashboard', 'tracking', 'documents', 'settings'];
+  document.querySelectorAll('.mobile-bottom button span').forEach((slot, index) => {
+    if (mobileLinks[index]) slot.innerHTML = lfNavIcon(mobileLinks[index]);
+  });
+}
 function lfSimple(k){if(k==='shipments')return '<div class="lf-title"><div><div class="lf-breadcrumb">Accueil › Expéditions</div><h1>Expéditions</h1><p>Portefeuille des missions de transport.</p></div></div><section class="lf-card"><div id="lf-table-root">'+lfTable()+'</div></section><div id="lf-drawer"></div>';let title=k==='tariffs'?'Tarifs et grilles':'Rapports';return '<div class="lf-title"><div><div class="lf-breadcrumb">Accueil › Gestion › '+title+'</div><h1>'+title+'</h1><p>Indicateurs et référentiel du commissionnaire.</p></div></div><section class="lf-card"><h2>'+title+' · MAD</h2><p>National : marge maximale de 800 MAD · international : marge minimale de 3 000 MAD.</p><p>Valeurs de démonstration à valider selon les accords transporteurs et les frais de passage frontière.</p></section>'}
 const lfBaseRender=render;
 render=function(){if(['dashboard','shipments','tariffs','reports','carriers'].includes(page)){document.querySelector('#workspaceTitle').textContent='Commissionnaire';document.querySelector('#workspaceSub').textContent='Atlas Logistics';document.querySelector('#context').textContent='Accueil › '+({dashboard:'Tableau de bord',shipments:'Expéditions',tariffs:'Tarifs et grilles',reports:'Rapports',carriers:'Transporteurs'}[page]);document.querySelector('#app').innerHTML=page==='dashboard'?dashboard():page==='carriers'?carriersPage():lfSimple(page);makeMobileNav()}else{lfBaseRender();document.querySelector('#context').textContent='Accueil › '+({offers:'Appels d’offres',tracking:'Suivi d’expédition',documents:'Documents',billing:'Facturation',disputes:'Litiges',clients:'Clients',carriers:'Transporteurs'}[page]||page)}lfNav()}
