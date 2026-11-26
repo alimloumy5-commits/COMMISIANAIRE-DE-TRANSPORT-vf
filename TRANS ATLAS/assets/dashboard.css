@@ -90,3 +90,11 @@ button.lf-kpi:is(:hover, :focus-visible) {
 .lf-nav-group button, .side-bottom button { display: flex; align-items: center; gap: 10px; }
 .side-bottom button.active { color: #176b4f; background: #e5f4eb; }
 .mobile-bottom .lf-nav-icon { display: block; margin-inline: auto; }
+
+.tracking-vehicle-row { width:100%; border:0; background:transparent; color:inherit; text-align:left; font:inherit; }
+.tracking-vehicle-row small { display:block; }
+.tracking-vehicle-row:focus-visible { outline:2px solid #16845e; outline-offset:-2px; }
+.tracking-truck-glyph,.tracking-map-truck { display:grid; place-items:center; flex:0 0 38px; width:38px; height:38px; border-radius:12px; }
+.tracking-truck-glyph { background:#e7f4ec; color:#176b4f; }
+.tracking-map-truck { box-sizing:border-box; border:2px solid white; background:var(--vehicle-color); color:white; box-shadow:0 2px 8px #17352d55; }
+.tracking-truck-glyph svg,.tracking-map-truck svg { width:23px; height:23px; }
