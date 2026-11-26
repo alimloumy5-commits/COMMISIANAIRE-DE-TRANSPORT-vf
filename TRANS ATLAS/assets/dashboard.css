@@ -101,3 +101,20 @@ button.lf-kpi:is(:hover, :focus-visible) {
 
 .offer-card .offer-footer > small { display: none; }
 .offer-card .offer-footer { justify-content: flex-end; }
+
+.lf-carrier-quotes { border:1px solid #e0eae5; border-radius:14px; margin-block:16px; overflow-x:auto; }
+.lf-carrier-quotes table { width:100%; min-width:790px; border-collapse:separate; border-spacing:0; }
+.lf-carrier-quotes :is(th,td) { padding:13px 14px; text-align:left; border-bottom:1px solid #e5eeea; }
+.lf-carrier-quotes thead th { background:#edf5f1; color:#285246; white-space:nowrap; font-size:.82rem; }
+.lf-carrier-quotes tbody tr:last-child > * { border-bottom:0; }
+.lf-carrier-quotes tbody tr:is(:hover,.lf-quote-selected) > * { background:#f0faf5; }
+.lf-carrier-quotes tbody .lf-quote-selected th { box-shadow:inset 3px 0 #16845e; }
+.lf-carrier-quotes th small { display:block; color:#536b62; margin-top:4px; font-weight:400; }
+.lf-quote-price { white-space:nowrap; font-weight:700; font-variant-numeric:tabular-nums; }
+.lf-quote-status { display:inline-block; border-radius:999px; padding:4px 9px; white-space:nowrap; font-size:.8rem; font-weight:600; }
+.lf-quote-status.pending { color:#805109; background:#fff3d9; }
+.lf-quote-status.confirmed { color:#176746; background:#dff4e8; }
+.lf-quote-status.unavailable { color:#982c24; background:#fdeae7; }
+.lf-quote-choice { border:1px solid #b9d6c8; border-radius:8px; padding:7px 11px; background:#fff; color:#176746; font-weight:600; cursor:pointer; }
+.lf-quote-choice:is(:hover,[aria-pressed="true"]) { background:#176b4f; color:#fff; }
+.bid-selection button:disabled { opacity:.5; cursor:not-allowed; }

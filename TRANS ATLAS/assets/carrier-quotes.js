@@ -18,24 +18,59 @@ bidsForOffer = function (offer) {
   });
 };
 
-function lfTransportQuoteTable(bids) {
+const lfOriginalConfirmAssignment = confirmAssignment;
+let lfManualCarrierChoice;
+
+document.addEventListener('click', event => {
+  if (event.target.closest('[data-offer-open], [data-page="offers"]')) lfManualCarrierChoice = undefined;
+  const choice = event.target.closest('.lf-carrier-quotes [data-row="bid"]');
+  if (page === 'assignment' && choice) {
+    lfManualCarrierChoice = { offer: selectedOfferCode, index: Number(choice.dataset.index) };
+  }
+}, true);
+
+confirmAssignment = function () {
+  if (lfManualCarrierChoice?.offer !== selectedOfferCode || lfManualCarrierChoice.index !== selectedBidIndex) {
+    toast('Choisis un transporteur avant de confirmer.');
+    return;
+  }
+  return lfOriginalConfirmAssignment();
+};
+
+function lfTransportQuoteTable(bids, selectedIndex, assigned) {
   const rows = bids.map((bid, index) => {
-    const selected = index === selectedBidIndex;
-    return '<tr' + (selected ? ' class="selected"' : '') + '><th scope="row">' +
-      '<button type="button" class="text-button" data-row="bid" data-index="' + index + '" aria-pressed="' + selected + '">' +
-      esc(bid.carrier) + '</button><br><small>' + esc(bid.vehicle) + '</small></th><td>' +
-      esc(bid.price.toLocaleString('fr-FR')) + ' DH HT</td><td>' + esc(bid.eta) + '</td><td>' +
-      esc(bid.ontime) + '</td></tr>';
+    const selected = index === selectedIndex;
+    const availability = bid.availableAtEtd === true ? ['Confirmée', 'confirmed'] :
+      bid.availableAtEtd === false ? ['Indisponible', 'unavailable'] : ['À confirmer', 'pending'];
+    return '<tr' + (selected ? ' class="lf-quote-selected"' : '') + '><th scope="row"><strong>' +
+      esc(bid.carrier) + '</strong><small>' + esc(bid.vehicle) + '</small></th><td class="lf-quote-price">' +
+      esc(bid.price.toLocaleString('fr-FR')) + ' DH HT</td><td><span class="lf-quote-status ' + availability[1] + '">' +
+      availability[0] + '</span></td><td>' + esc(bid.eta) + '</td><td>' + esc(bid.ontime) + '</td>' +
+      (assigned ? '' : '<td><button type="button" class="lf-quote-choice" data-row="bid" data-index="' + index +
+        '" aria-pressed="' + selected + '" aria-label="Choisir ' + esc(bid.carrier) + '">' +
+        (selected ? 'Sélectionné' : 'Choisir') + '</button></td>') + '</tr>';
   }).join('');
-  return '<div class="table-wrap"><table aria-label="Comparaison des transporteurs"><thead><tr>' +
-    ['Transporteur', 'Prix proposé', 'Délai', 'Ponctualité'].map(label => '<th scope="col">' + label + '</th>').join('') +
-    '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+  const headings = ['Transporteur', 'Prix proposé', 'Disponibilité à l’ETD', 'Délai', 'Ponctualité'];
+  if (!assigned) headings.push('Sélection');
+  return '<div class="table-wrap lf-carrier-quotes"><table aria-label="Comparaison des transporteurs"><thead><tr>' +
+    headings.map(label => '<th scope="col">' + label + '</th>').join('') + '</tr></thead><tbody>' + rows + '</tbody></table></div>';
 }
 
 assignmentPage = function () {
   const offer = offers.find(row => row[0] === selectedOfferCode) || offers[0];
-  return lfOriginalAssignmentPage()
+  const saved = assignedOffers[offer[0]];
+  const bids = bidsForOffer(offer);
+  const manualIndex = lfManualCarrierChoice?.offer === offer[0] ? lfManualCarrierChoice.index : -1;
+  const selectedIndex = saved ? bids.findIndex(bid => bid.carrier === saved.carrier) : manualIndex;
+  let html = lfOriginalAssignmentPage()
+    .replace('Affectation automatique', 'Choix du transporteur')
     .replace('Transporteurs compatibles</h3>', 'Comparaison des transporteurs</h3>')
     .replace(/<div class="bid-list">[\s\S]*?(?=<div class="assignment-finance">)/,
-      () => lfTransportQuoteTable(bidsForOffer(offer)));
+      () => lfTransportQuoteTable(bids, selectedIndex, Boolean(saved)));
+  if (!saved && !bids[manualIndex]) {
+    html = html.replace(/<div class="assignment-finance">[\s\S]*?(?=<div class="bid-selection">)/, '')
+      .replace('<button class="primary" data-action="Confirmer l’attribution">', '<button class="primary" data-action="Confirmer l’attribution" disabled>')
+      .replace(/<div class="card"><h3>Capacités et contrôle<\/h3>[\s\S]*$/, '');
+  }
+  return html;
 };
