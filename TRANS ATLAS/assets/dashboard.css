@@ -98,3 +98,6 @@ button.lf-kpi:is(:hover, :focus-visible) {
 .tracking-truck-glyph { background:#e7f4ec; color:#176b4f; }
 .tracking-map-truck { box-sizing:border-box; border:2px solid white; background:var(--vehicle-color); color:white; box-shadow:0 2px 8px #17352d55; }
 .tracking-truck-glyph svg,.tracking-map-truck svg { width:23px; height:23px; }
+
+.offer-card .offer-footer > small { display: none; }
+.offer-card .offer-footer { justify-content: flex-end; }
