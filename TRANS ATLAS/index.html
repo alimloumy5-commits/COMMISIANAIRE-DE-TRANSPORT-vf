@@ -52,6 +52,11 @@
       white-space: nowrap;
       justify-self: end;
     }
+    #app > .lf-title .lf-breadcrumb > .lf-mode,
+    body:has(#nav [data-page="tracking"].active) #app > .heading:first-child .sub,
+    body:has(#nav [data-page="offers"].active) #app > .heading:first-child .sub {
+      display: none;
+    }
   </style>
 </head>
 <body>
