@@ -31,7 +31,7 @@ lfDrawer = function (ref) {
     button.type = 'button';
     button.className = 'secondary';
     button.dataset.documentFolder = ref;
-    button.textContent = 'Documents de cette expédition';
+    button.textContent = folderLabel(ref);
     description.replaceWith(button);
   }
 };
@@ -43,7 +43,7 @@ let libraryFormat = '';
 
 function shipmentSection() {
     const cards = lfR.map(row => {
-      const n = docs.filter(doc => doc[1] === row.ref && doc[5]).length;
+      const n = shipmentPieces(row.ref).length;
       return `<button class="card folder" type="button" data-document-folder="${esc(row.ref)}"><small>${esc(row.ref)}</small><b>${esc(row.route)}</b><span>${esc(row.client)}</span><small>${n} documents</small></button>`;
     }).join('');
 
@@ -93,7 +93,7 @@ documentsPage = function () {
     layout.insertAdjacentHTML('afterend', shipmentSection());
     return template.innerHTML;
   }
-  const pieces = docs.filter(doc => doc[1] === shipment.ref && doc[5]);
+  const pieces = shipmentPieces(shipment.ref);
   const selected = pieces.includes(docs[selectedDocument]) ? docs[selectedDocument] : pieces[0];
   const layout = root.querySelector('.doc-layout');
   const list = layout.firstElementChild;
@@ -143,3 +143,104 @@ for (const action of ['input','change']) {
     libraryRows(document);
   });
 }
+
+function shipmentPieces(ref) {
+  return docs.filter(doc => doc[1] === ref && doc[5]);
+}
+
+function folderLabel(ref) {
+  const n = shipmentPieces(ref).length;
+  return 'Documents de l’expédition (' + n + ')';
+}
+
+function folderLink(ref, withReference = false) {
+  const label = (withReference ? ref + ' · ' : '') + folderLabel(ref);
+  return `<button type="button" class="text-button" data-document-folder="${esc(ref)}">${esc(label)}</button>`;
+}
+
+function pieceSummary(ref) {
+  const names = { BL:'Bon de livraison', Colisage:'Liste de colisage', CMR:'CMR', DUM:'DUM',
+    'Facture-commerciale':'Facture commerciale', 'Facture-transport':'Facture de transport',
+    Temperature:'Relevé de température', Conformite:'Certificat de conformité', Phytosanitaire:'Certificat phytosanitaire' };
+  return shipmentPieces(ref).map(d => names[d[0].split('-EXP-')[0]] || d[4]).join(' · ') || 'Aucune pièce rattachée';
+}
+
+function associatedDocuments(panel, rows) {
+  if (!panel || !rows.length) return;
+  panel.insertAdjacentHTML('beforeend', '<div class="detail-row"><span>Documents des expéditions</span><div>' +
+    rows.map(row => folderLink(row.ref, true)).join('<br>') + '</div></div>');
+}
+
+function namedField(root, label) {
+  return [...root.querySelectorAll('.detail-row, .shipment-facts > div')].find(row =>
+    row.firstElementChild?.textContent.trim() === label);
+}
+
+const alertWithHistory = lfAlertWorkflow;
+lfAlertWorkflow = function(alert) {
+  return alertWithHistory(alert) + folderLink(alert.ref);
+};
+
+const renderBeforeDocumentLinks = render;
+render = function() {
+  renderBeforeDocumentLinks();
+  const root = document.getElementById('app');
+  if (page === 'tracking') {
+    const ref = shipments[selectedShip]?.[0];
+    if (!ref) return;
+    const field = namedField(root,'Documents');
+    if (field) field.lastElementChild.textContent = pieceSummary(ref);
+    const button = root.querySelector('.shipment-footer [data-page="documents"]');
+    if (button) {
+      button.removeAttribute('data-page');
+      button.dataset.documentFolder = ref;
+      button.textContent = folderLabel(ref);
+    }
+  } else if (page === 'assignment') {
+    const field = namedField(root,'Documents');
+    const row = lfR.find(r => r.offerCode === selectedOfferCode);
+    if (field) field.lastElementChild.innerHTML = row ? folderLink(row.ref) : 'Aucune expédition rattachée';
+    else if (row) associatedDocuments(root.querySelector('.assignment-summary'),[row]);
+  } else if (page === 'clients' || page === 'carriers' || page === 'shippers') {
+    const panel = root.querySelector('.client-profile, .card.detail');
+    const partner = panel?.querySelector('h2')?.textContent.trim() ||
+      root.querySelector('tr.selected[data-row="carriers"] td')?.textContent.trim();
+    const key = page === 'carriers' ? 'carrier' : 'client';
+    associatedDocuments(panel || root.querySelector('.two-col > .card:last-child'),lfR.filter(r => r[key] === partner));
+  } else if (page === 'disputes') {
+    const panel = root.querySelector('.card.detail');
+    const id = panel?.querySelector('.card-head .link')?.textContent.trim();
+    const dispute = disputes.find(d => d[0] === id);
+    const row = lfR.find(r => r.ref === dispute?.[1]);
+    if (row) {
+      const evidence = namedField(panel,'Éléments associés');
+      if (evidence) evidence.lastElementChild.innerHTML = folderLink(row.ref);
+    }
+  } else if (page === 'billing') {
+    const panel = root.querySelector('.bill-preview');
+    const id = panel?.querySelector('.invoice-heading b')?.textContent.trim();
+    const row = lfR.find(r => r.invoiceRef && r.invoiceRef === id);
+    if (row) associatedDocuments(panel,[row]);
+  }
+};
+
+const modalBeforeDocumentLinks = modal;
+modal = function(heading,body,submit) {
+  modalBeforeDocumentLinks(heading,body,submit);
+  const panel = document.querySelector('#modalRoot .modal-body');
+  if (!panel) return;
+  const dispute = disputes.find(d => heading.startsWith(d[0]));
+  const ref = dispute?.[1] || heading.match(/EXP-\d{4}-\d+/)?.[0];
+  if (!lfR.some(r => r.ref === ref)) return;
+  const field = namedField(panel,'Document concerné') || namedField(panel,'Preuves');
+  if (field) field.lastElementChild.innerHTML = folderLink(ref);
+};
+document.addEventListener('click', event => {
+  if (event.target.closest('#modalRoot [data-document-folder]')) {
+    const ref = event.target.closest('[data-document-folder]').dataset.documentFolder;
+    event.stopPropagation();
+    document.getElementById('modalRoot').replaceChildren();
+    openDocumentFolder(ref);
+  }
+},true);
+render();
