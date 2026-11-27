@@ -7,6 +7,39 @@
   <link rel="stylesheet" href="/assets/theme.css?v=20261120-1">
   <link rel="stylesheet" href="/assets/dashboard.css?v=20261126-manual-etd">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <style>
+    @media (min-width: 961px) {
+      .two-col.doc-layout:has([data-doc-pager]) {
+        grid-template-columns: minmax(0, 3fr) minmax(18rem, 2fr);
+        align-items: stretch;
+      }
+      .doc-layout:has([data-doc-pager]) > .card { min-width: 0; }
+      .doc-layout:has([data-doc-pager]) .doc-view {
+        position: static;
+        display: flex;
+        flex-direction: column;
+      }
+      .doc-layout:has([data-doc-pager]) .doc-view > .card-head {
+        flex-wrap: wrap;
+        gap: .5rem;
+      }
+      .doc-layout:has([data-doc-pager]) .doc-view > img,
+      .doc-layout:has([data-doc-pager]) .doc-view > .doc-sheet {
+        flex: 1 1 0px;
+        min-height: 0;
+        height: 0 !important;
+      }
+      .doc-layout:has([data-doc-pager]) .doc-view > img { object-fit: contain; }
+      .doc-layout:has([data-doc-pager]) .doc-view > .doc-sheet { overflow: auto; }
+    }
+    @media (max-width: 960px) {
+      .two-col.doc-layout:has([data-doc-pager]) {
+        grid-template-columns: minmax(0, 1fr);
+        gap: .75rem;
+      }
+      .doc-layout:has([data-doc-pager]) .doc-view { position: static; }
+    }
+  </style>
 </head>
 <body>
   <aside class="sidebar" id="sidebar">
